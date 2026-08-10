@@ -10,6 +10,7 @@
 md-outlet は **同じ HTML パイプライン** で両方を揃え、紙面の好みは版管理できる `profile.yaml` に残します。
 
 **推奨環境:** Windows + 最新 Microsoft Edge（安定版）+ Node 18 LTS  
+**ダウンロード（Windows 向け zip）:** [Releases](https://github.com/ApostolusNET/md-outlet/releases)  
 **スタートガイド:** [docs/START.md](docs/START.md) · **サンプル:** [examples/sample.md](examples/sample.md)
 
 | 気軽な閲覧（既定） | マニュアル（章ごと改ページ） |
