@@ -1,0 +1,4 @@
+md-outlet TXT sample
+
+このファイルは閲覧オマケ用のプレーンテキストです。
+編集・PDF は Markdown のみです。

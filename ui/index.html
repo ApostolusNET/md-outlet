@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>md-outlet ui</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <h1 id="appTitle">md-outlet ui</h1>
+    <div class="actions">
+      <details class="menu" id="mdMenu">
+        <summary>MDメニュー</summary>
+        <div class="menu-panel">
+          <button type="button" id="btnNewMd">新規作成 (Ctrl+Alt+N)</button>
+          <button type="button" id="btnOpenMd">開く (Ctrl+Alt+O)</button>
+          <button type="button" id="btnToggleEditor">編集 (Ctrl+Alt+E)</button>
+          <button type="button" id="btnSaveMd">保存 (Ctrl+Alt+S)</button>
+          <button type="button" id="btnCloseMd">閉じる (Ctrl+Alt+W)</button>
+        </div>
+      </details>
+      <button type="button" id="btnPdf">PDFに出力</button>
+      <button type="button" class="primary" id="btnSave">Yaml設定保存</button>
+      <details class="menu" id="helpMenu">
+        <summary>ガイド</summary>
+        <div class="menu-panel" id="helpMenuPanel">
+        </div>
+      </details>
+    </div>
+  </header>
+  <nav id="tabBar" class="tab-bar" hidden aria-label="開いているファイル">
+    <div id="tabList" class="tab-list" role="tablist"></div>
+  </nav>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+  <div id="exportBanner" class="export-banner" role="status" aria-live="polite" hidden>
+    <div class="banner-msg">
+      <div id="bannerTitle"></div>
+      <span class="banner-path" id="bannerPath" hidden></span>
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="primary" id="btnOpenPdf" hidden>PDF を開く</button>
+      <button type="button" id="btnDismissBanner" hidden>閉じる</button>
+    </div>
+  </div>
+  <div id="dirtyModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dirtyModalTitle">
+      <h2 id="dirtyModalTitle">未保存の変更があります</h2>
+      <p id="dirtyModalMessage">Markdown または紙面設定が保存されていません。保存しますか？</p>
+      <div class="modal-actions">
+        <button type="button" id="btnDirtyCancel">キャンセル</button>
+        <button type="button" id="btnDirtyDiscard">保存しない</button>
+        <button type="button" class="primary" id="btnDirtySave">保存して続行</button>
+      </div>
+    </div>
+  </div>
+  <div id="pdfModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+      <h2 id="pdfModalTitle">Export PDF</h2>
+      <div id="pdfModalStepSave">
+        <p>どこに保存しますか？</p>
+        <div class="modal-path" id="pdfModalOverwritePath"></div>
+        <div class="modal-actions">
+          <button type="button" id="btnPdfCancel">キャンセル</button>
+          <button type="button" id="btnPdfSaveAs">別名で保存…</button>
+          <button type="button" class="primary" id="btnPdfOverwrite">上書き保存</button>
+        </div>
+      </div>
+      <div id="pdfModalStepAs" hidden>
+        <p>保存先フォルダを選び、ファイル名を確認してください。既存の PDF をクリックするとそのパスが入ります。</p>
+        <div class="browse-toolbar">
+          <button type="button" id="btnPdfSaveUp" title="上のフォルダ">↑</button>
+          <button type="button" id="btnPdfSaveHome" title="md-outlet に戻る">Home</button>
+          <label class="browse-root-label" for="pdfSaveRootSelect">場所</label>
+          <select id="pdfSaveRootSelect" title="ドライブ / WSL"></select>
+          <div class="modal-path" id="pdfSaveBrowsePath">.</div>
+        </div>
+        <div class="browse-list" id="pdfSaveBrowseList" role="listbox" aria-label="保存先一覧"></div>
+        <label for="pdfModalPathInput">ファイル名 / パス</label>
+        <input id="pdfModalPathInput" autocomplete="off" placeholder="./report.pdf" />
+        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.pdf</code> を付けます。</p>
+        <div class="modal-actions">
+          <button type="button" id="btnPdfAsBack">戻る</button>
+          <button type="button" class="primary" id="btnPdfAsConfirm">この名前で保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="mdModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mdModalTitle">
+      <h2 id="mdModalTitle">Save Markdown</h2>
+      <div id="mdModalStepSave">
+        <p>どこに保存しますか？</p>
+        <div class="modal-path" id="mdModalOverwritePath"></div>
+        <div class="modal-actions">
+          <button type="button" id="btnMdCancel">キャンセル</button>
+          <button type="button" id="btnMdSaveAs">別名で保存…</button>
+          <button type="button" class="primary" id="btnMdOverwrite">上書き保存</button>
+        </div>
+      </div>
+      <div id="mdModalStepAs" hidden>
+        <p>保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
+        <div class="browse-toolbar">
+          <button type="button" id="btnMdSaveUp" title="上のフォルダ">↑</button>
+          <button type="button" id="btnMdSaveHome" title="md-outlet に戻る">Home</button>
+          <label class="browse-root-label" for="mdSaveRootSelect">場所</label>
+          <select id="mdSaveRootSelect" title="ドライブ / WSL"></select>
+          <div class="modal-path" id="mdSaveBrowsePath">.</div>
+        </div>
+        <div class="browse-list" id="mdSaveBrowseList" role="listbox" aria-label="保存先一覧"></div>
+        <label for="mdModalPathInput">ファイル名 / パス</label>
+        <input id="mdModalPathInput" autocomplete="off" placeholder="./notes.md" />
+        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。保存後はそのファイルを編集対象にします。</p>
+        <div class="modal-actions">
+          <button type="button" id="btnMdAsBack">戻る</button>
+          <button type="button" class="primary" id="btnMdAsConfirm">この名前で保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="openMdModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="openMdModalTitle">
+      <h2 id="openMdModalTitle">ファイルを開く</h2>
+      <p>最初は <code>md-outlet</code>。<strong>場所</strong>からドライブや WSL（<code>\\wsl.localhost\…</code>）へジャンプできます。フォルダを開いて <code>.md</code>、または <code>.xml</code> / <code>.json</code> / <code>.yaml</code> / <code>.txt</code> / <code>.log</code> / <code>.csv</code>（閲覧）を選んでください。</p>
+      <div class="browse-toolbar">
+        <button type="button" id="btnOpenMdUp" title="上のフォルダ">↑</button>
+        <button type="button" id="btnOpenMdHome" title="md-outlet に戻る">Home</button>
+        <label class="browse-root-label" for="openMdRootSelect">場所</label>
+        <select id="openMdRootSelect" title="ドライブ / WSL"></select>
+        <div class="modal-path" id="openMdBrowsePath">.</div>
+      </div>
+      <div class="browse-list" id="openMdBrowseList" role="listbox" aria-label="ファイル一覧"></div>
+      <details class="browse-advanced">
+        <summary>パスを直接入力</summary>
+        <label for="openMdPathInput">ファイル名 / パス</label>
+        <input id="openMdPathInput" autocomplete="off" placeholder="./examples/sample.md" />
+        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。</p>
+      </details>
+      <div class="modal-actions">
+        <button type="button" id="btnOpenMdCancel">キャンセル</button>
+        <button type="button" class="primary" id="btnOpenMdConfirm">開く</button>
+      </div>
+    </div>
+  </div>
+  <div id="newMdModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newMdModalTitle">
+      <h2 id="newMdModalTitle">New Markdown</h2>
+      <p id="newMdModalLead">保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
+      <div class="browse-toolbar">
+        <button type="button" id="btnNewMdUp" title="上のフォルダ">↑</button>
+        <button type="button" id="btnNewMdHome" title="md-outlet に戻る">Home</button>
+        <label class="browse-root-label" for="newMdRootSelect">場所</label>
+        <select id="newMdRootSelect" title="ドライブ / WSL"></select>
+        <div class="modal-path" id="newMdBrowsePath">.</div>
+      </div>
+      <div class="browse-list" id="newMdBrowseList" role="listbox" aria-label="保存先一覧"></div>
+      <label for="newMdPathInput">ファイル名 / パス</label>
+      <input id="newMdPathInput" autocomplete="off" placeholder="./untitled.md" />
+      <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。作成後に編集を開始します。</p>
+      <div class="modal-actions">
+        <button type="button" id="btnNewMdCancel">キャンセル</button>
+        <button type="button" class="primary" id="btnNewMdConfirm">作成</button>
+      </div>
+    </div>
+  </div>
+  <div id="dropConflictModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dropConflictTitle">
+      <h2 id="dropConflictTitle">同じ名前のファイルがあります</h2>
+      <p>上書きするか、別名で保存するか選んでください。</p>
+      <div class="modal-path" id="dropConflictPath"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnDropConflictCancel">キャンセル</button>
+        <button type="button" id="btnDropConflictSaveAs">別名で保存…</button>
+        <button type="button" class="primary" id="btnDropConflictOverwrite">上書きして開く</button>
+      </div>
+    </div>
+  </div>
+  <div id="dropOpenModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dropOpenTitle">
+      <h2 id="dropOpenTitle">ドロップしたファイル</h2>
+      <p id="dropOpenLead"></p>
+      <div class="modal-path" id="dropOpenPath" hidden></div>
+      <div class="browse-list" id="dropOpenList" role="listbox" hidden></div>
+      <div class="modal-actions">
+        <button type="button" id="btnDropOpenCancel">キャンセル</button>
+        <button type="button" id="btnDropOpenCopy" hidden>コピーして開く</button>
+        <button type="button" id="btnDropOpenBrowse" hidden>参照して開く</button>
+      </div>
+    </div>
+  </div>
+  <div id="dropOverlay" class="drop-overlay" hidden aria-hidden="true">
+    <div class="drop-overlay-inner">Markdown をドロップ（元の場所で開きます）</div>
+  </div>
+  <main>
+    <aside id="asidePanel">
+      <div class="aside-rail-top">
+        <button
+          type="button"
+          id="btnAsideToggle"
+          aria-controls="asideBody"
+          aria-expanded="true"
+          title="設定パネルをしまう (Ctrl+Alt+B)"
+        >‹</button>
+      </div>
+      <div class="aside-body" id="asideBody">
+      <label for="templateSelect">書式のひな形</label>
+      <select id="templateSelect"></select>
+
+      <details class="settings-block" id="pagePanel">
+        <summary>
+          <span class="settings-title">用紙</span>
+          <span class="settings-hint" id="pagePanelHint">A4：縦</span>
+        </summary>
+        <label for="format">サイズ</label>
+        <select id="format">
+          <option>A4</option>
+          <option>A3</option>
+          <option>Letter</option>
+          <option>Legal</option>
+        </select>
+        <label for="orientation">向き</label>
+        <select id="orientation">
+          <option value="portrait">縦</option>
+          <option value="landscape">横</option>
+        </select>
+        <label for="marginPreset">余白</label>
+        <select id="marginPreset">
+          <option value="normal" selected>普通</option>
+          <option value="narrow">狭い</option>
+          <option value="wide">広い</option>
+          <option value="custom">数値で指定</option>
+        </select>
+        <div class="row-4" id="marginCustomRow" hidden>
+          <div>
+            <label for="mTop">上</label>
+            <input id="mTop" placeholder="20mm" />
+          </div>
+          <div>
+            <label for="mRight">右</label>
+            <input id="mRight" placeholder="18mm" />
+          </div>
+          <div>
+            <label for="mBottom">下</label>
+            <input id="mBottom" placeholder="20mm" />
+          </div>
+          <div>
+            <label for="mLeft">左</label>
+            <input id="mLeft" placeholder="18mm" />
+          </div>
+        </div>
+        <label for="scale">PDFの縮小・拡大</label>
+        <input id="scale" type="number" min="0.1" max="2" step="0.05" />
+        <label class="check"><input type="checkbox" id="printBg" checked /> 背景色も印刷する</label>
+      </details>
+
+      <details class="settings-block" id="lookPanel">
+        <summary>
+          <span class="settings-title">見た目</span>
+          <span class="settings-hint" id="lookPanelHint">default</span>
+        </summary>
+        <label for="themeSelect">テーマ</label>
+        <select id="themeSelect"></select>
+        <label class="check"><input type="checkbox" id="breakH1" /> 見出しごとに改ページ</label>
+      </details>
+
+      <details class="settings-block" id="notePanel" open>
+        <summary>
+          <span class="settings-title">メモ</span>
+          <span class="settings-hint" id="notePanelHint">正本には書きません</span>
+        </summary>
+        <p class="aside-note-lead">
+          同じフォルダに <code>*.md-outlet-note.json</code> として保存します（Markdown／データ本体は変更しません）。
+        </p>
+        <textarea
+          id="docNote"
+          spellcheck="true"
+          placeholder="校正メモ・TODO など（同じフォルダのサイドカーに保存）"
+          disabled
+        ></textarea>
+      </details>
+
+      <details class="settings-block advanced" id="advancedPanel">
+        <summary>詳細設定</summary>
+        <label for="name">設定の名前</label>
+        <input id="name" autocomplete="off" />
+        <label for="description">説明</label>
+        <input id="description" autocomplete="off" />
+        <label for="savePath">設定ファイルの保存先</label>
+        <input id="savePath" autocomplete="off" />
+        <label for="themeCustom">カスタムテーマのパス</label>
+        <input id="themeCustom" placeholder="./themes/paper/theme.css" />
+        <label class="check"><input type="checkbox" id="skipFirst" checked /> 最初の見出しでは改ページしない</label>
+      </details>
+      </div>
+    </aside>
+
+    <section class="editor">
+      <div class="pane-bar">
+        <span>Markdown</span>
+        <div class="tools">
+          <button type="button" id="btnInsertBreak" title="カーソル位置で改ページ">改ページ</button>
+          <button type="button" id="btnInsertKeep" title="選択範囲を同じページにまとめる">まとめて表示</button>
+          <button type="button" id="btnReloadMd" title="ディスクから再読み込み">再読込</button>
+          <button type="button" id="btnMdFind" title="編集内を検索 (Ctrl+Alt+F)">検索</button>
+          <span id="mdHint">—</span>
+        </div>
+      </div>
+      <div id="mdFindBar" class="md-find-bar" hidden>
+        <label class="log-filter-label" for="mdFindInput">検索</label>
+        <input
+          id="mdFindInput"
+          type="search"
+          placeholder="編集内を検索（Enter で次）"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="button" id="btnMdFindPrev" title="前へ">↑</button>
+        <button type="button" id="btnMdFindNext" title="次へ">↓</button>
+        <span id="mdFindCount"></span>
+        <button type="button" id="btnMdFindClose" title="閉じる (Esc)">×</button>
+      </div>
+      <textarea id="mdEditor" spellcheck="false" wrap="off"></textarea>
+    </section>
+
+    <section class="preview">
+      <div class="pane-bar">
+        <div class="preview-heading">
+          <span class="preview-label">プレビュー：</span>
+          <span class="preview-path" id="previewPath" title=""></span>
+        </div>
+        <div class="tools">
+          <button type="button" id="btnNavBack" hidden title="前のファイルまたは履歴へ (Esc)">← 戻る</button>
+          <span id="previewHint">最新</span>
+        </div>
+      </div>
+      <div class="preview-stage">
+        <div id="welcomePanel" class="welcome" hidden>
+          <h2>ファイルを開く</h2>
+          <p class="welcome-lead">最近使った Markdown を選ぶか、メニューから開く／新規作成。.md のドロップは可能なら元の場所で開きます。</p>
+          <p class="hotkey-hint">ショートカット: Ctrl+Alt+E 編集 / Ctrl+Alt+S 保存 / Ctrl+Alt+O 開く / Ctrl+Alt+N 新規 / Ctrl+Alt+W タブを閉じる / Ctrl+Alt+F 検索 / Ctrl+Alt+B 設定パネル / Esc 戻る</p>
+          <div class="welcome-actions">
+            <button type="button" class="primary" id="btnWelcomeOpen">開く…</button>
+            <button type="button" id="btnWelcomeNew">新規作成…</button>
+          </div>
+          <h3>最近のファイル</h3>
+          <div class="recent-list" id="recentList" role="list"></div>
+        </div>
+        <div id="logFilterBar" aria-label="ログの絞り込み">
+          <label class="log-filter-label" for="logFilterQuery">フィルタ</label>
+          <input
+            id="logFilterQuery"
+            type="search"
+            placeholder="含む行のみ（ファイルは変えません）"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="log-chips" role="group" aria-label="ログレベル">
+            <button type="button" class="log-chip" data-level="ERROR" aria-pressed="false">ERROR</button>
+            <button type="button" class="log-chip" data-level="WARN" aria-pressed="false">WARN</button>
+            <button type="button" class="log-chip" data-level="INFO" aria-pressed="false">INFO</button>
+          </div>
+          <span id="logFilterCount">一致 — / 全 — 行</span>
+          <button type="button" id="btnLogFilterClear" title="フィルタとレベル選択を解除">クリア</button>
+        </div>
+        <iframe id="frame" title="preview"></iframe>
+      </div>
+    </section>
+  </main>
+  <div id="kbHost" class="kb-host" tabindex="-1" aria-hidden="true"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

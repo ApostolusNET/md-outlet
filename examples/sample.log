@@ -1,0 +1,7 @@
+2026-08-09 10:00:01 INFO  server started port=5760
+2026-08-09 10:00:02 DEBUG open file=examples/sample.md
+2026-08-09 10:00:03 INFO  preview ok
+2026-08-09 10:00:04 WARN  asset missing path=./missing.png
+2026-08-09 10:00:05 ERROR export failed reason=timeout
+2026-08-09 10:00:06 INFO  retry export
+2026-08-09 10:00:07 INFO  export ok path=examples/sample.pdf

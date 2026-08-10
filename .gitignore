@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.log
+!examples/sample.log
+examples/*.pdf
+examples/*.html
+examples/.tmp-init/
+examples/.tmp-ui-profile.yaml
+examples/.tmp-ui-sample.md
+examples/.tmp-ui-recent.json
+examples/.tmp-ui-sample-as.md
+examples/.tmp-ui-new.md
+examples/.tmp-ui-named.pdf
+*.md-outlet-note.json
+.md-outlet-recent.json
+ui/js/_backup-*/
+# Local working copies / generated previews (not part of the release tree)
+README.pdf
+README-copy.md
+README-copy.pdf
+/my-report.yaml
+/ops-manual.yaml
+/simple-preview.yaml
+# Personal / workplace materials — never track, never push
+dicts/local/
+examples/local/
+docs/_private/
+docs/GbizINFO-APItoken.md
+docs/GbizINFO-APItoken.example.md

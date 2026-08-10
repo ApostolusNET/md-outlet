@@ -1,0 +1,25 @@
+version: 1
+meta:
+  name: ops-manual
+  description: Operations manual. Cover page + one chapter per H1.
+page:
+  format: A4
+  orientation: portrait
+  margin:
+    top: 22mm
+    right: 18mm
+    bottom: 22mm
+    left: 18mm
+  printBackground: true
+theme: default
+breaks:
+  beforeHeadings: [h1]
+  skipFirst: true
+  avoidInside: [pre, table, blockquote]
+  avoidAfter: [h2, h3, h4]
+markdown:
+  gfm: true
+  highlight: true
+  highlightStyle: github
+  allowHtml: true
+bodyClass: [ops-manual]

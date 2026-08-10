@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://md-outlet.dev/schemas/profile-v1.json",
+  "title": "md-outlet Profile v1",
+  "type": "object",
+  "required": ["version", "meta", "page", "theme"],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "meta": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "authors": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["A4", "A3", "Letter", "Legal"],
+          "default": "A4"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["portrait", "landscape"],
+          "default": "portrait"
+        },
+        "margin": {
+          "type": "object",
+          "properties": {
+            "top": { "type": "string" },
+            "right": { "type": "string" },
+            "bottom": { "type": "string" },
+            "left": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "printBackground": { "type": "boolean", "default": true },
+        "scale": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 2,
+          "default": 1,
+          "description": "PDF print scale only. HTML/preview ignore this."
+        }
+      },
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Built-in theme name or path relative to profile file"
+    },
+    "breaks": {
+      "type": "object",
+      "properties": {
+        "beforeHeadings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["h1", "h2", "h3", "h4", "h5", "h6"]
+          },
+          "default": []
+        },
+        "skipFirst": { "type": "boolean", "default": true },
+        "avoidInside": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["pre", "table", "blockquote"]
+        },
+        "avoidAfter": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["h2", "h3", "h4"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "markdown": {
+      "type": "object",
+      "properties": {
+        "gfm": { "type": "boolean", "default": true },
+        "highlight": { "type": "boolean", "default": true },
+        "highlightStyle": { "type": "string", "default": "github" },
+        "allowHtml": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+    "bodyClass": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  }
+}

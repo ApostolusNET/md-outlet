@@ -1,0 +1,20 @@
+# Bundled sample dictionary for XML browse (optional labels).
+# Unknown tags stay as tag names. Add your own under dicts/local/ (gitignored).
+meta:
+  name: example
+  description: Generic demo labels for examples/sample.xml and sample-typed.xml
+
+labels:
+  sampleRoot: サンプルルート
+  title: タイトル
+  item: 項目
+  name: 名前
+  value: 値
+  record: レコード
+  issuedYmd: 発行日
+  paidDt: 支払日
+  amountRyou: 金額（円）
+  feeRyou: 手数料（円）
+  officeNameLine1: 事業所名称（1行目）
+  notice: お知らせ
+  note: 備考

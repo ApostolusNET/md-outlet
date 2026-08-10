@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generic demo for date grouping / money / HTML strip / dict labels (not domain-specific). -->
+<record>
+  <issuedYmdGengou>令和</issuedYmdGengou>
+  <issuedYmdYear>6</issuedYmdYear>
+  <issuedYmdMonth>8</issuedYmdMonth>
+  <issuedYmdDate>8</issuedYmdDate>
+  <paidDtGengo>令和</paidDtGengo>
+  <paidDtYear>8</paidDtYear>
+  <paidDtMonth>6</paidDtMonth>
+  <paidDtDate>30</paidDtDate>
+  <amountRyou>12345</amountRyou>
+  <feeRyou>1000</feeRyou>
+  <officeNameLine1>テスト事業所</officeNameLine1>
+  <notice>お知らせです&lt;br/&gt;詳細は&lt;a href="https://example.com"&gt;ここ&lt;/a&gt;</notice>
+  <note>普通のテキスト</note>
+</record>

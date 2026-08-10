@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sampleRoot>
+  <title>md-outlet XML phase0</title>
+  <item id="1">
+    <name>alpha</name>
+    <value>100</value>
+  </item>
+  <item id="2">
+    <name>beta</name>
+    <value>200</value>
+  </item>
+</sampleRoot>

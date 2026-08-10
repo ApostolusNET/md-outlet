@@ -1,0 +1,82 @@
+{
+  "name": "md-outlet",
+  "version": "0.2.0",
+  "description": "Preferences for Markdown output — same source, your paper. Reproducible PDF & preview via versioned profiles.",
+  "keywords": [
+    "markdown",
+    "pdf",
+    "preview",
+    "puppeteer",
+    "profile",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApostolusNET/md-outlet.git"
+  },
+  "homepage": "https://github.com/ApostolusNET/md-outlet#readme",
+  "bugs": {
+    "url": "https://github.com/ApostolusNET/md-outlet/issues"
+  },
+  "type": "module",
+  "bin": {
+    "md-outlet": "./bin/md-outlet.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schemas",
+    "profiles",
+    "themes",
+    "dicts",
+    "ui",
+    "examples",
+    "docs",
+    "start-ui.bat",
+    "start-ui.sh",
+    "start-ui-sendto.ps1",
+    "install-sendto.bat",
+    "uninstall-sendto.bat",
+    "SPEC.md",
+    "ROADMAP.md",
+    "README.md",
+    "LICENSE",
+    "package-lock.json"
+  ],
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "pdf:sample": "tsx src/cli.ts pdf examples/sample.md --profile default -o examples/sample.pdf",
+    "pdf:ops": "tsx src/cli.ts pdf examples/ops-sample.md --profile ops-manual -o examples/ops-sample.pdf",
+    "ui": "tsx src/cli.ts ui",
+    "ui:simple": "tsx src/cli.ts ui --simple",
+    "smoke": "tsx scripts/smoke.ts",
+    "test:schema": "tsx scripts/validate-profiles.ts",
+    "test:idempotent": "tsx scripts/test-idempotency.ts",
+    "test:overrides": "tsx scripts/test-overrides.ts",
+    "test:frontmatter": "tsx scripts/test-frontmatter.ts",
+    "test:init": "tsx scripts/test-init.ts",
+    "test:ui": "tsx scripts/test-ui.ts",
+    "test:stability": "tsx scripts/test-stability.ts",
+    "test:browser": "tsx scripts/test-browser.ts",
+    "gen:heavy-examples": "tsx scripts/gen-heavy-examples.ts",
+    "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-release.ps1",
+    "test": "npm run test:schema && npm run test:idempotent && npm run test:overrides && npm run test:frontmatter && npm run test:init && npm run test:ui && npm run test:stability && npm run test:browser"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "highlight.js": "^11.10.0",
+    "marked": "^14.1.4",
+    "marked-highlight": "^2.1.4",
+    "puppeteer-core": "^23.11.1",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

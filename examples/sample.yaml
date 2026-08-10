@@ -1,0 +1,23 @@
+title: md-outlet YAML sample
+version: 1
+enabled: true
+tags:
+  - preview
+  - scan
+  - read-only
+server:
+  host: 127.0.0.1
+  port: 5760
+  note: "single-line comment field"
+items:
+  - id: 1
+    name: alpha
+    score: 100
+  - id: 2
+    name: beta
+    score: 200
+description: |
+  複数行のテキストも
+  そのまま読み下します。
+empty: {}
+notes: null

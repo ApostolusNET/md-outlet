@@ -1,0 +1,265 @@
+/* md-outlet default theme
+ * 目的: 表罫線・コード背景・本文タイポを最初から保証する。
+ * このテーマ 1 枚で「表が消える」「コード背景が消える」が起きないこと。
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI",
+    "Meiryo", system-ui, -apple-system, BlinkMacSystemFont, "Roboto",
+    "Helvetica Neue", sans-serif;
+  color: #111;
+  line-height: 1.6;
+  font-size: 11pt;
+  margin: 0;
+}
+
+body > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+body > :last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* --- Headings ---------------------------------------------------------- */
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0.6em 0 0.3em;
+  line-height: 1.3;
+  color: #1a1a1a;
+}
+
+h1 { font-size: 1.9em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.2em; }
+h2 { font-size: 1.45em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; }
+h5 { font-size: 1em; }
+h6 { font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.02em; }
+
+p {
+  margin: 0.3em 0 0.9em;
+}
+
+a {
+  color: #0b5fff;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* --- Lists ------------------------------------------------------------- */
+
+ul, ol {
+  margin: 0.3em 0 0.9em;
+  padding-left: 1.6em;
+}
+
+li + li {
+  margin-top: 0.15em;
+}
+
+/* --- Blockquote -------------------------------------------------------- */
+
+blockquote {
+  margin: 0.6em 0 1em;
+  padding: 0.4em 0.9em;
+  border-left: 4px solid #d1d5db;
+  color: #374151;
+  background: #f9fafb;
+}
+
+/* --- Code -------------------------------------------------------------- */
+
+code {
+  font-family: "Consolas", "Menlo", "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.95em;
+}
+
+p code, li code, td code, h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  padding: 0.05em 0.35em;
+}
+
+pre {
+  background: #f6f8fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.8em 1em;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0.5em 0 1em;
+}
+
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.9em;
+  color: #24292f;
+}
+
+/* --- Tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  margin: 0.5em 0 1em;
+  font-size: 0.95em;
+}
+
+th, td {
+  border: 1px solid #d1d5db;
+  padding: 0.45em 0.7em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th[align="center"],
+td[align="center"] {
+  text-align: center;
+}
+
+th[align="right"],
+td[align="right"] {
+  text-align: right;
+}
+
+th[align="left"],
+td[align="left"] {
+  text-align: left;
+}
+
+thead th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(2n) {
+  background: #fafafa;
+}
+
+/* --- Horizontal rule --------------------------------------------------- */
+
+hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.2em 0;
+}
+
+/* --- Images ------------------------------------------------------------ */
+
+img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.5em 0;
+}
+
+/* --- Page break utility ------------------------------------------------ */
+/* SPEC 準拠: 手書きの <div class="page-break"></div> を尊重 */
+/* 印刷・PDF では改ページ。画面プレビューでは区切りが見えるようにする。 */
+
+.page-break,
+.md-outlet-page-break {
+  page-break-after: always;
+  break-after: page;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: block;
+}
+
+@media screen {
+  .page-break,
+  .md-outlet-page-break {
+    height: auto;
+    margin: 1.75rem 0 1.25rem;
+    border-top: 1px dashed #8a9a94;
+    position: relative;
+  }
+
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: "改ページ";
+    position: absolute;
+    top: -0.7em;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 0.55em;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: #5a6b63;
+    background: #fff;
+  }
+}
+
+/* Keep a block on one page when possible (best-effort; oversized blocks may still split). */
+.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* --- Print-specific tweaks --------------------------------------------- */
+
+@media print {
+  body {
+    color: #000;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  pre, table, blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .page-break,
+  .md-outlet-page-break {
+    height: 0;
+    margin: 0;
+    border: 0;
+  }
+
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: none;
+  }
+}
+
+/* --- Body class hooks -------------------------------------------------- */
+
+.ops-manual h1 {
+  color: #0b3d91;
+}
+
+@media screen {
+  /* ひな形差がプレビューでも分かるように（PDF には影響しない） */
+  .ops-manual h1 {
+    padding-top: 0.35em;
+    border-top: 2px solid #c5d4f0;
+  }
+
+  .ops-manual h1:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+}

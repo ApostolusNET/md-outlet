@@ -1,0 +1,231 @@
+/* md-outlet compact theme
+ * Denser typography for long ops docs / checklists.
+ * Same structural guarantees as default (tables, code, page-break, keep-together).
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI",
+    "Meiryo", system-ui, -apple-system, BlinkMacSystemFont, "Roboto",
+    "Helvetica Neue", sans-serif;
+  color: #111;
+  line-height: 1.45;
+  font-size: 10pt;
+  margin: 0;
+}
+
+body > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+body > :last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0.4em 0 0.2em;
+  line-height: 1.25;
+  color: #1a1a1a;
+}
+
+h1 {
+  font-size: 1.55em;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.15em;
+}
+h2 { font-size: 1.25em; }
+h3 { font-size: 1.1em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.95em; }
+h6 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+p {
+  margin: 0.2em 0 0.65em;
+}
+
+a {
+  color: #0b5fff;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+ul, ol {
+  margin: 0.2em 0 0.65em;
+  padding-left: 1.4em;
+}
+
+li + li {
+  margin-top: 0.08em;
+}
+
+blockquote {
+  margin: 0.4em 0 0.75em;
+  padding: 0.3em 0.7em;
+  border-left: 3px solid #d1d5db;
+  color: #374151;
+  background: #f9fafb;
+}
+
+code {
+  font-family: "Consolas", "Menlo", "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.92em;
+}
+
+p code, li code, td code, h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+}
+
+pre {
+  background: #f6f8fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.55em 0.75em;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0.35em 0 0.75em;
+}
+
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.88em;
+  color: #24292f;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  margin: 0.35em 0 0.75em;
+  font-size: 0.92em;
+}
+
+th, td {
+  border: 1px solid #d1d5db;
+  padding: 0.3em 0.5em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th[align="center"],
+td[align="center"] {
+  text-align: center;
+}
+
+th[align="right"],
+td[align="right"] {
+  text-align: right;
+}
+
+th[align="left"],
+td[align="left"] {
+  text-align: left;
+}
+
+thead th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(2n) {
+  background: #fafafa;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 0.9em 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.35em 0;
+}
+
+.page-break,
+.md-outlet-page-break {
+  page-break-after: always;
+  break-after: page;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: block;
+}
+
+@media screen {
+  .page-break,
+  .md-outlet-page-break {
+    height: auto;
+    margin: 1.25rem 0 1rem;
+    border-top: 1px dashed #8a9a94;
+    position: relative;
+  }
+
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: "改ページ";
+    position: absolute;
+    top: -0.65em;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 0.5em;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #5a6b63;
+    background: #fff;
+  }
+}
+
+.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  body { color: #000; }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  pre, table, blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .page-break,
+  .md-outlet-page-break {
+    height: 0;
+    margin: 0;
+    border: 0;
+  }
+
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: none;
+  }
+}
