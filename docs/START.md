@@ -16,7 +16,7 @@
 - [Node.js](https://nodejs.org/) 18 以降（LTS 推奨）
 
 PDF は **システムに入っている Edge / Chrome** を使います（別途 Chromium はダウンロードしません）。パスを指定する場合は環境変数 `MD_OUTLET_BROWSER`（実行ファイルの絶対パス）。  
-**Linux** は Docker（Chromium）で CLI／PDF／テストを確認済み。**macOS** は未確認。詳細は [DISTRIBUTION.md](DISTRIBUTION.md)。
+**Linux** は Docker（Chromium）で CLI／PDF／テストを確認済み。**macOS** は未確認。
 
 ターミナル（PowerShell やコマンドプロンプト）が使えれば十分です。
 
@@ -94,8 +94,6 @@ npx md-outlet ui
 | `ui/styles.css` | 画面 CSS |
 | `ui/js/*.js` | 挙動（ES modules。入口は `app.js`） |
 
-詳細なファイル役割と「これ以上分けない」方針は [ROADMAP.md](../ROADMAP.md) の Phase 4c を参照。  
-
 ヘッダー右の **ガイド** メニューから、いつでも次を開けます。
 
 - スタートガイド（この文書）
@@ -139,8 +137,6 @@ start-ui.bat path\to\notes.md
 | 終了 | **ブラウザの md-outlet タブ**を閉じる（サーバも止まる） |
 
 `start-ui.bat` をダブルクリックしたときや `npm run ui` のターミナルは、従来どおりログが見える窓です。止めるときはその窓で Ctrl+C でも可。
-
-配布の版・zip の中身・今後の軽量化方針は [DISTRIBUTION.md](DISTRIBUTION.md) を参照。
 
 ---
 

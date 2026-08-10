@@ -74,7 +74,6 @@ $copyFiles = @(
   "install-sendto.bat",
   "uninstall-sendto.bat",
   "SPEC.md",
-  "ROADMAP.md",
   "README.md",
   "LICENSE",
   "package.json",

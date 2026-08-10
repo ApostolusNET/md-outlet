@@ -7,14 +7,12 @@ Markdown を **同じ HTML パイプライン** でプレビューし、その�
 
 **推奨環境:** Windows + 最新 Microsoft Edge（安定版）+ Node 18 LTS  
 **スタートガイド（日本語）:** [docs/START.md](docs/START.md)  
-**配布方針:** [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)  
 **サンプル:** [examples/sample.md](examples/sample.md)
 
 | 文書 | 内容 |
 |------|------|
 | [SPEC.md](SPEC.md) | 仕様 |
 | [schemas/profile-v1.json](schemas/profile-v1.json) | プロファイルスキーマ |
-| [ROADMAP.md](ROADMAP.md) | ロードマップ |
 | [LICENSE](LICENSE) | MIT（Copyright © 2026 I.C.A. Co., Ltd.） |
 
 ---
@@ -135,7 +133,7 @@ npx md-outlet ui --no-open   # ブラウザを開かない（CI など）
 - **ヘッダー** … MDメニュー（新規／開く／編集／保存／閉じる）、PDFに出力、Yaml設定保存、ガイド
 
 組み込みの `profiles/` は上書きしません（`-o` で別ファイルへ）。  
-UI の分割方針: [ROADMAP.md](ROADMAP.md) Phase 4c。
+UI はバンドラなし（`ui/index.html` + `ui/styles.css` + `ui/js/*.js`）。
 
 ---
 

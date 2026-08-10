@@ -189,7 +189,7 @@ Examples:
   md-outlet ui doc.md --profile ./my-report.yaml
   md-outlet pdf doc.md --profile ./my-report.yaml
 
-Docs: docs/START.md  SPEC.md  ROADMAP.md
+Docs: docs/START.md  SPEC.md
 `;
   process.stdout.write(text);
 }

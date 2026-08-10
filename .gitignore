@@ -18,9 +18,13 @@ ui/js/_backup-*/
 README.pdf
 README-copy.md
 README-copy.pdf
+ROADMAP.pdf
+SPEC.pdf
 /my-report.yaml
 /ops-manual.yaml
 /simple-preview.yaml
+*.pdf
+!examples/fixtures/**/*.pdf
 # Personal / workplace materials — never track, never push
 dicts/local/
 examples/local/
