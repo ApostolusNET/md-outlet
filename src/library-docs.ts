@@ -26,6 +26,14 @@ function sampleDocPath(lang: Lang): string {
   return resolve(EXAMPLES_DIR, "sample.md");
 }
 
+function kitchenSinkPath(lang: Lang): string {
+  if (lang === "en") {
+    const en = resolve(EXAMPLES_DIR, "kitchen-sink.en.md");
+    if (existsSync(en)) return en;
+  }
+  return resolve(EXAMPLES_DIR, "kitchen-sink.md");
+}
+
 /** Built-in docs / samples shown in the UI Help menu. */
 export function listLibraryDocs(lang: Lang = DEFAULT_LANG): LibraryDoc[] {
   const entries: LibraryDoc[] = [
@@ -33,6 +41,11 @@ export function listLibraryDocs(lang: Lang = DEFAULT_LANG): LibraryDoc[] {
       id: "start",
       label: t(lang, "library.start"),
       path: startGuidePath(lang),
+    },
+    {
+      id: "kitchen-sink",
+      label: t(lang, "library.kitchen"),
+      path: kitchenSinkPath(lang),
     },
     {
       id: "sample",

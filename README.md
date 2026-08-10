@@ -14,6 +14,7 @@ md-outlet uses the **same HTML pipeline** for both, and keeps page preferences i
 **Recommended:** Windows + current Microsoft Edge (stable) + Node 18 LTS  
 **Download (Windows zip):** [Releases](https://github.com/ApostolusNET/md-outlet/releases)  
 **Getting started:** [docs/START.md](docs/START.md) · [日本語ガイド](docs/START.ja.md)  
+**Syntax catalog:** [examples/kitchen-sink.en.md](examples/kitchen-sink.en.md) · [日本語](examples/kitchen-sink.md)  
 **Sample:** [examples/sample.en.md](examples/sample.en.md) · [日本語サンプル](examples/sample.md)
 
 | Casual reading (default) | Manual (page break per chapter) |

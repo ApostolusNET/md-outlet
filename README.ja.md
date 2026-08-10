@@ -14,6 +14,7 @@ md-outlet は **同じ HTML パイプライン** で両方を揃え、紙面の�
 **推奨環境:** Windows + 最新 Microsoft Edge（安定版）+ Node 18 LTS  
 **ダウンロード（Windows 向け zip）:** [Releases](https://github.com/ApostolusNET/md-outlet/releases)  
 **スタートガイド:** [docs/START.ja.md](docs/START.ja.md) · [English](docs/START.md)  
+**記法カタログ:** [examples/kitchen-sink.md](examples/kitchen-sink.md) · [English](examples/kitchen-sink.en.md)  
 **サンプル:** [examples/sample.md](examples/sample.md) · [English sample](examples/sample.en.md)
 
 | 気軽な閲覧（既定） | マニュアル（章ごと改ページ） |

@@ -99,6 +99,7 @@ npx md-outlet ui
 ヘッダー右の **ガイド** メニューから、いつでも次を開けます。
 
 - スタートガイド（この文書）
+- 記法カタログ（`examples/kitchen-sink.md`）
 - サンプル文書（`examples/sample.md`）
 
 止めるときは **ブラウザの md-outlet タブを閉じる**のが確実です。ターミナル／`start-ui.bat` の窓から起動した場合は、そこで `Ctrl+C` でも止められます。
@@ -156,7 +157,7 @@ start-ui.bat path\to\notes.md
 1. **MDメニュー** — 新規作成 (Ctrl+Alt+N) / 開く (Ctrl+Alt+O) / 編集 (Ctrl+Alt+E) / 保存 (Ctrl+Alt+S) / 閉じる (Ctrl+Alt+W)  
 2. **PDFに出力** — 上書き or 別名で PDF 保存（**アクティブな Markdown** のみ）  
 3. **Yaml設定保存** — 紙面設定をファイルに保存  
-4. **ガイド** — スタートガイド／サンプル文書  
+4. **ガイド** — スタートガイド／記法カタログ／サンプル文書
 5. **🇯🇵 / 🇺🇸** — 表示言語（日本語／English）。右端。選択はブラウザに記憶されます  
 
 
@@ -243,6 +244,7 @@ start-ui.bat path\to\notes.md
 | メニュー | 内容 |
 |----------|------|
 | スタートガイド | この文書 |
+| 記法カタログ | 使える書き方の一覧（`examples/kitchen-sink.md`） |
 | サンプル文書 | 基本サンプル（`examples/sample.md`） |
 
 詳しい仕様は [README.ja.md](../README.ja.md) / [README.md](../README.md) / [SPEC.md](../SPEC.md) を参照。

@@ -18,6 +18,77 @@ let logFilterTimer = null;
 
 let previewTimer = null;
 
+/** Last editor scroll ratio (0–1) for rough preview follow after srcdoc reload. */
+let lastEditorScrollRatio = 0;
+let scrollFollowRaf = 0;
+
+function scrollableRange(el) {
+  if (!el) return 0;
+  return Math.max(0, el.scrollHeight - el.clientHeight);
+}
+
+function getScrollRatio(el) {
+  const range = scrollableRange(el);
+  if (range <= 0) return 0;
+  return Math.min(1, Math.max(0, el.scrollTop / range));
+}
+
+function setScrollRatio(el, ratio) {
+  const range = scrollableRange(el);
+  if (range <= 0) return;
+  const r = Math.min(1, Math.max(0, Number(ratio) || 0));
+  el.scrollTop = r * range;
+}
+
+function previewScrollRoot(doc) {
+  if (!doc) return null;
+  return doc.scrollingElement || doc.documentElement || doc.body;
+}
+
+export function captureEditorScrollRatio() {
+  const ta = $("mdEditor");
+  if (!ta) return lastEditorScrollRatio;
+  lastEditorScrollRatio = getScrollRatio(ta);
+  return lastEditorScrollRatio;
+}
+
+export function applyPreviewScrollRatio(ratio = lastEditorScrollRatio) {
+  const frame = $("frame");
+  if (!frame) return;
+  try {
+    const root = previewScrollRoot(frame.contentDocument);
+    if (!root) return;
+    setScrollRatio(root, ratio);
+  } catch (_) {
+    /* empty / unavailable iframe doc */
+  }
+}
+
+function syncPreviewToEditorScroll() {
+  applyPreviewScrollRatio(captureEditorScrollRatio());
+}
+
+/**
+ * Editor → preview rough scroll follow (ratio only; one-way).
+ * Call once after the editor exists in the DOM.
+ */
+export function initPreviewScrollFollow() {
+  const ta = $("mdEditor");
+  if (!ta || ta.dataset.mdOutletScrollFollow === "1") return;
+  ta.dataset.mdOutletScrollFollow = "1";
+  ta.addEventListener(
+    "scroll",
+    () => {
+      if (scrollFollowRaf) return;
+      scrollFollowRaf = requestAnimationFrame(() => {
+        scrollFollowRaf = 0;
+        syncPreviewToEditorScroll();
+      });
+    },
+    { passive: true }
+  );
+}
+
 export function selectedLogLevels() {
   return Array.from(
     document.querySelectorAll("#logFilterBar .log-chip[aria-pressed='true']")
@@ -214,6 +285,7 @@ export function parkKeyboardFocus() {
 }
 
 export function setFrameSrcdoc(html) {
+  captureEditorScrollRatio();
   const frame = $("frame");
   frame.onload = () => bindPreviewDocument();
   frame.srcdoc = injectPreviewHotkeyBridge(html);
@@ -262,6 +334,12 @@ export function bindPreviewDocument() {
   }
   // If focus landed in the iframe, pull it back after load/click.
   setTimeout(parkKeyboardFocus, 0);
+  // Layout may settle after paint; apply ratio twice so follow survives srcdoc reload.
+  const ratio = lastEditorScrollRatio;
+  requestAnimationFrame(() => {
+    applyPreviewScrollRatio(ratio);
+    requestAnimationFrame(() => applyPreviewScrollRatio(ratio));
+  });
 }
 
 export async function openMarkdownFromPreviewLink(href) {

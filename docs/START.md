@@ -88,7 +88,8 @@ If the UI is already running, the file opens as a new tab (max 3).
 3. Confirm the preview updates  
 4. **Export PDF** → overwrite or save as  
 
-For a longer walkthrough with screenshots, see the [Japanese start guide](START.ja.md).
+For a longer walkthrough with screenshots, see the [Japanese start guide](START.ja.md).  
+Syntax overview: [kitchen-sink.en.md](../examples/kitchen-sink.en.md) (also under **Guide** in the UI).
 
 ---
 

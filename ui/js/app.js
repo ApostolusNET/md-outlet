@@ -60,6 +60,7 @@ import {
 } from "./profile-form.js";
 import {
   bindPreview,
+  initPreviewScrollFollow,
   refreshPreview,
   schedulePreview,
   resetLogFilterControls,
@@ -1571,6 +1572,7 @@ function wireUiModules() {
     pushMdNav,
     getTabDirtyById: () => tabDirtyById,
   });
+  initPreviewScrollFollow();
 }
 
 wireUiModules();

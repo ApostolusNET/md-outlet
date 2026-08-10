@@ -43,6 +43,14 @@ assert.ok(existsSync(startEn.path));
 assert.ok(startEn.path.endsWith("START.md"));
 assert.ok(startJa.path.endsWith("START.ja.md"));
 
+const kitchenJa = libJa.find((x) => x.id === "kitchen-sink")!;
+const kitchenEn = libEn.find((x) => x.id === "kitchen-sink")!;
+assert.equal(kitchenJa.label, "記法カタログ");
+assert.equal(kitchenEn.label, "Syntax catalog");
+assert.ok(existsSync(kitchenJa.path));
+assert.ok(existsSync(kitchenEn.path));
+assert.ok(kitchenEn.path.endsWith("kitchen-sink.en.md"));
+
 const sampleJa = libJa.find((x) => x.id === "sample")!;
 const sampleEn = libEn.find((x) => x.id === "sample")!;
 assert.ok(existsSync(sampleJa.path));

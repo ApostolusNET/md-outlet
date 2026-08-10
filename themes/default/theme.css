@@ -68,6 +68,20 @@ li + li {
   margin-top: 0.15em;
 }
 
+/* GFM task lists (Marked may wrap the checkbox in <p> when nested). */
+li:has(input[type="checkbox"]) {
+  list-style: none;
+}
+
+li:has(input[type="checkbox"])::marker {
+  content: "";
+}
+
+input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+
 /* --- Blockquote -------------------------------------------------------- */
 
 blockquote {

@@ -223,21 +223,35 @@ li > ol {
   margin-bottom: 0.35em;
 }
 
-/* GFM task lists */
+/* GFM task lists — Marked may wrap checkbox in <p> when items are nested. */
+li:has(input[type="checkbox"]),
 li.task-list-item,
 .contains-task-list > li {
   list-style: none;
   padding-left: 0;
 }
 
+/* Beat folio's ul/ul ul decorative ::before markers on any task item. */
+ul > li:has(input[type="checkbox"])::before,
+ul ul > li:has(input[type="checkbox"])::before,
 ul.contains-task-list > li::before,
 li.task-list-item::before {
   display: none;
+  content: none;
+  width: 0;
+  height: 0;
+  border: none;
+  background: none;
+}
+
+li:has(input[type="checkbox"])::marker {
+  content: "";
 }
 
 input[type="checkbox"] {
   accent-color: var(--folio-accent);
   margin-right: 0.4em;
+  vertical-align: middle;
 }
 
 /* --- Blockquote: dual tone --------------------------------------------- */

@@ -13,6 +13,7 @@
   "header.saveYaml": "Yaml設定保存",
   "header.guide": "ガイド",
   "library.start": "スタートガイド",
+  "library.kitchen": "記法カタログ",
   "library.sample": "サンプル文書",
   "template.simple-preview": "気軽な閲覧（既定）",
   "template.default": "一般文書",

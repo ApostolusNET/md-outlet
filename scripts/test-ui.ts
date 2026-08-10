@@ -991,6 +991,11 @@ try {
     Array.isArray(state.library) && state.library.some((x) => x.id === "start")
   );
   check(
+    "library includes kitchen-sink",
+    Array.isArray(state.library) &&
+      state.library.some((x) => x.id === "kitchen-sink")
+  );
+  check(
     "library includes sample",
     Array.isArray(state.library) && state.library.some((x) => x.id === "sample")
   );

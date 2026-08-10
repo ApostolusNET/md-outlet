@@ -13,6 +13,7 @@
   "header.saveYaml": "Save YAML",
   "header.guide": "Guide",
   "library.start": "Getting started",
+  "library.kitchen": "Syntax catalog",
   "library.sample": "Sample document",
   "template.simple-preview": "Casual preview (default)",
   "template.default": "General document",
