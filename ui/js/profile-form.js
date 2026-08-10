@@ -105,7 +105,11 @@ export function fillThemeOptions(themes, current) {
   const sel = $("themeSelect");
   sel.innerHTML = "";
   const list = Array.isArray(themes) && themes.length ? themes : ["default"];
-  const themeLabels = { default: "標準", compact: "コンパクト" };
+  const themeLabels = {
+    default: "標準",
+    compact: "コンパクト",
+    folio: "フォリオ（装飾多め）",
+  };
   for (const t of list) {
     const opt = document.createElement("option");
     opt.value = t;

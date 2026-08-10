@@ -1,0 +1,521 @@
+/* md-outlet folio theme
+ * やや凝った紙面向け。見出しは明朝寄り、本文はゴシック。
+ * 表罫線・コード背景・改ページ・keep-together は default と同じ保証。
+ */
+
+:root {
+  --folio-ink: #1c2430;
+  --folio-muted: #5a6570;
+  --folio-line: #c9d2db;
+  --folio-soft: #eef2f5;
+  --folio-soft-2: #f7f9fb;
+  --folio-accent: #0f6b6b;
+  --folio-accent-deep: #0a4f4f;
+  --folio-accent-wash: #e6f3f2;
+  --folio-warn-wash: #f7f0e6;
+  --folio-code-bg: #f0f3f6;
+  --folio-code-border: #d5dde5;
+  --folio-link: #0b5c75;
+  --folio-serif: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif CJK JP",
+    "Source Han Serif", Georgia, "Times New Roman", serif;
+  --folio-sans: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI",
+    "Meiryo", system-ui, -apple-system, sans-serif;
+  --folio-mono: "Cascadia Code", "Consolas", "Menlo", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  font-family: var(--folio-sans);
+  color: var(--folio-ink);
+  line-height: 1.7;
+  font-size: 10.75pt;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+body > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+body > :last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* --- Headings: serif display + accent rules ---------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--folio-serif);
+  margin: 0;
+  color: var(--folio-ink);
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 1.95em;
+  letter-spacing: 0.02em;
+  padding: 0.15em 0 0.45em;
+  margin: 0 0 0.85em;
+  border-bottom: 2px solid var(--folio-accent);
+  position: relative;
+}
+
+h1::after {
+  content: "";
+  display: block;
+  width: 3.5rem;
+  height: 3px;
+  margin-top: 0.55em;
+  background: linear-gradient(
+    90deg,
+    var(--folio-accent-deep),
+    var(--folio-accent) 55%,
+    transparent
+  );
+}
+
+h2 {
+  font-size: 1.4em;
+  margin-top: 1.35em;
+  padding: 0.35em 0 0.35em 0.75em;
+  border-left: 4px solid var(--folio-accent);
+  background: linear-gradient(90deg, var(--folio-accent-wash), transparent 70%);
+}
+
+h3 {
+  font-size: 1.18em;
+  margin-top: 1.1em;
+  padding: 0.35em 0 0.2em;
+  color: var(--folio-accent-deep);
+}
+
+h3::before {
+  content: "§ ";
+  font-weight: 600;
+  color: var(--folio-accent);
+  font-family: var(--folio-sans);
+  font-size: 0.85em;
+}
+
+h4 {
+  font-size: 1.05em;
+  margin-top: 0.95em;
+  padding: 0.25em 0;
+  border-bottom: 1px dotted var(--folio-line);
+}
+
+h5 {
+  font-size: 1em;
+  margin-top: 0.85em;
+  padding: 0.2em 0;
+  color: var(--folio-muted);
+}
+
+h6 {
+  font-size: 0.88em;
+  margin-top: 0.75em;
+  padding: 0.15em 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--folio-muted);
+  font-family: var(--folio-sans);
+  font-weight: 600;
+}
+
+p {
+  margin: 0.35em 0 0.95em;
+}
+
+a {
+  color: var(--folio-link);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--folio-link) 35%, transparent);
+}
+a:hover {
+  color: var(--folio-accent-deep);
+  border-bottom-color: var(--folio-accent);
+}
+
+/* --- Lists ------------------------------------------------------------- */
+
+ul,
+ol {
+  margin: 0.35em 0 0.95em;
+  padding-left: 1.55em;
+}
+
+ul {
+  list-style: none;
+}
+
+ul > li {
+  position: relative;
+  padding-left: 0.15em;
+}
+
+ul > li::before {
+  content: "";
+  position: absolute;
+  left: -1.05em;
+  top: 0.55em;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 2px;
+  background: var(--folio-accent);
+  transform: rotate(45deg);
+}
+
+ul ul > li::before {
+  background: transparent;
+  border: 1.5px solid var(--folio-accent);
+  border-radius: 50%;
+  transform: none;
+  width: 0.35em;
+  height: 0.35em;
+  top: 0.58em;
+}
+
+ol {
+  list-style: none;
+  counter-reset: folio-ol;
+}
+
+ol > li {
+  counter-increment: folio-ol;
+  position: relative;
+  padding-left: 0.2em;
+}
+
+ol > li::before {
+  content: counter(folio-ol, decimal-leading-zero);
+  position: absolute;
+  left: -1.85em;
+  top: 0.05em;
+  width: 1.55em;
+  text-align: right;
+  font-family: var(--folio-mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--folio-accent-deep);
+}
+
+li + li {
+  margin-top: 0.28em;
+}
+
+li > ul,
+li > ol {
+  margin-top: 0.35em;
+  margin-bottom: 0.35em;
+}
+
+/* GFM task lists */
+li.task-list-item,
+.contains-task-list > li {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul.contains-task-list > li::before,
+li.task-list-item::before {
+  display: none;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--folio-accent);
+  margin-right: 0.4em;
+}
+
+/* --- Blockquote: dual tone --------------------------------------------- */
+
+blockquote {
+  margin: 0.85em 0 1.1em;
+  padding: 0.75em 1em 0.75em 1.1em;
+  border-left: 4px solid var(--folio-accent);
+  background:
+    linear-gradient(180deg, var(--folio-accent-wash), var(--folio-soft-2));
+  color: #2a3540;
+  border-radius: 0 6px 6px 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--folio-accent) 12%, transparent);
+}
+
+blockquote > :first-child {
+  margin-top: 0;
+}
+blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+blockquote blockquote {
+  background: var(--folio-warn-wash);
+  border-left-color: #b07a2e;
+  box-shadow: none;
+}
+
+/* --- Code -------------------------------------------------------------- */
+
+code {
+  font-family: var(--folio-mono);
+  font-size: 0.92em;
+}
+
+p code,
+li code,
+td code,
+th code,
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+  background: var(--folio-code-bg);
+  border: 1px solid var(--folio-code-border);
+  border-radius: 4px;
+  padding: 0.08em 0.4em;
+  color: #1f2a33;
+}
+
+pre {
+  background: linear-gradient(165deg, #f4f7f9 0%, var(--folio-code-bg) 100%);
+  border: 1px solid var(--folio-code-border);
+  border-left: 4px solid var(--folio-accent);
+  border-radius: 0 6px 6px 0;
+  padding: 0.9em 1.05em;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0.65em 0 1.15em;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--folio-ink) 4%, transparent);
+}
+
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.88em;
+  color: #1b242c;
+  line-height: 1.55;
+}
+
+/* --- Tables: banded header + zebra ------------------------------------- */
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 0.7em 0 1.2em;
+  font-size: 0.93em;
+  border: 1px solid var(--folio-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+th,
+td {
+  border-right: 1px solid var(--folio-line);
+  border-bottom: 1px solid var(--folio-line);
+  padding: 0.55em 0.8em;
+  text-align: left;
+  vertical-align: top;
+}
+
+tr > :last-child {
+  border-right: 0;
+}
+
+tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+th[align="center"],
+td[align="center"] {
+  text-align: center;
+}
+
+th[align="right"],
+td[align="right"] {
+  text-align: right;
+}
+
+th[align="left"],
+td[align="left"] {
+  text-align: left;
+}
+
+thead th {
+  background: linear-gradient(180deg, var(--folio-accent-deep), var(--folio-accent));
+  color: #f7fbfb;
+  font-weight: 650;
+  font-family: var(--folio-sans);
+  letter-spacing: 0.02em;
+  border-bottom-color: var(--folio-accent-deep);
+}
+
+tbody tr:nth-child(2n) {
+  background: var(--folio-soft-2);
+}
+
+tbody tr:hover {
+  background: var(--folio-accent-wash);
+}
+
+/* --- Horizontal rule / images ------------------------------------------ */
+
+hr {
+  border: 0;
+  height: 0;
+  margin: 1.6em 0;
+  border-top: 1px solid var(--folio-line);
+  position: relative;
+}
+
+hr::after {
+  content: "◆";
+  position: absolute;
+  left: 50%;
+  top: -0.7em;
+  transform: translateX(-50%);
+  padding: 0 0.55em;
+  font-size: 0.7rem;
+  color: var(--folio-accent);
+  background: #fff;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.65em 0;
+  border-radius: 4px;
+  border: 1px solid var(--folio-line);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--folio-ink) 8%, transparent);
+}
+
+/* --- Page break utility (SPEC) ----------------------------------------- */
+
+.page-break,
+.md-outlet-page-break {
+  page-break-after: always;
+  break-after: page;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: block;
+}
+
+@media screen {
+  body {
+    /* プレビューだけ薄い紙面感（PDF の余白はプロファイル側） */
+    background:
+      radial-gradient(1200px 400px at 10% -10%, #e8f4f3 0%, transparent 55%),
+      #fff;
+  }
+
+  .page-break,
+  .md-outlet-page-break {
+    height: auto;
+    margin: 2rem 0 1.4rem;
+    border-top: 1px dashed color-mix(in srgb, var(--folio-accent) 55%, var(--folio-line));
+    position: relative;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: "改ページ";
+    position: absolute;
+    top: -0.7em;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 0.6em;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: var(--folio-accent-deep);
+    background: #fff;
+    font-family: var(--folio-sans);
+  }
+}
+
+.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* --- Print ------------------------------------------------------------- */
+
+@media print {
+  body {
+    color: #000;
+    background: #fff;
+  }
+  a {
+    color: inherit;
+    border-bottom: 0;
+    text-decoration: none;
+  }
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  pre,
+  table,
+  blockquote,
+  img {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  thead th {
+    /* 印刷でもヘッダ帯が分かるよう（printBackground 前提） */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  tbody tr:hover {
+    background: inherit;
+  }
+  hr::after {
+    background: #fff;
+  }
+  .page-break,
+  .md-outlet-page-break {
+    height: 0;
+    margin: 0;
+    border: 0;
+  }
+  .page-break::after,
+  .md-outlet-page-break::after {
+    content: none;
+  }
+}
+
+/* --- bodyClass hooks --------------------------------------------------- */
+
+.ops-manual h1 {
+  border-bottom-color: #1a4a7a;
+}
+
+.ops-manual h1::after {
+  background: linear-gradient(90deg, #1a4a7a, #3d7ab8 55%, transparent);
+}
+
+.ops-manual h2 {
+  border-left-color: #1a4a7a;
+  background: linear-gradient(90deg, #e8eef8, transparent 70%);
+}
