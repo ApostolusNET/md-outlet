@@ -29,18 +29,22 @@ function isObject(v: unknown): v is Record<string, unknown> {
 }
 
 /** Root descriptor for the header line. */
-function describeRoot(root: unknown): string {
+function describeRoot(root: unknown, lang: Lang): string {
   if (root === null) return "(null)";
-  if (Array.isArray(root)) return `(array, ${root.length} 件)`;
-  if (isObject(root)) return `(object, ${Object.keys(root).length} キー)`;
+  if (Array.isArray(root)) {
+    return t(lang, "scan.rootArray", { n: root.length });
+  }
+  if (isObject(root)) {
+    return t(lang, "scan.rootObject", { n: Object.keys(root).length });
+  }
   return `(${typeof root})`;
 }
 
-function formatScalar(v: unknown): string {
+function formatScalar(v: unknown, lang: Lang): string {
   if (v === null) return "null";
-  if (v === undefined) return "（未定義）";
+  if (v === undefined) return t(lang, "scan.undefined");
   if (typeof v === "string") {
-    if (v === "") return "（空文字）";
+    if (v === "") return t(lang, "scan.emptyString");
     return v;
   }
   if (typeof v === "boolean") return v ? "true" : "false";
@@ -56,28 +60,29 @@ function pushKeyValue(
   lines: string[],
   indent: number,
   key: string,
-  value: unknown
+  value: unknown,
+  lang: Lang
 ): void {
   const pad = "  ".repeat(indent);
   if (isObject(value)) {
     const keys = Object.keys(value);
     if (keys.length === 0) {
-      lines.push(`${pad}${key}: {} （空）`);
+      lines.push(`${pad}${key}: ${t(lang, "scan.emptyObject")}`);
       return;
     }
     lines.push(`${pad}■ ${key}`);
-    renderObject(value, indent + 1, lines);
+    renderObject(value, indent + 1, lines, lang);
     return;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      lines.push(`${pad}${key}: [] （空）`);
+      lines.push(`${pad}${key}: ${t(lang, "scan.emptyArray")}`);
       return;
     }
-    renderArray(key, value, indent, lines);
+    renderArray(key, value, indent, lines, lang);
     return;
   }
-  const s = formatScalar(value);
+  const s = formatScalar(value, lang);
   if (typeof value === "string" && value.includes("\n")) {
     lines.push(`${pad}${key}:`);
     for (const line of splitLines(value)) {
@@ -97,10 +102,11 @@ function splitLines(text: string): string[] {
 function renderObject(
   obj: Record<string, unknown>,
   indent: number,
-  lines: string[]
+  lines: string[],
+  lang: Lang
 ): void {
   for (const key of Object.keys(obj)) {
-    pushKeyValue(lines, indent, key, obj[key]);
+    pushKeyValue(lines, indent, key, obj[key], lang);
   }
 }
 
@@ -108,33 +114,35 @@ function renderArray(
   key: string,
   arr: unknown[],
   indent: number,
-  lines: string[]
+  lines: string[],
+  lang: Lang
 ): void {
   const pad = "  ".repeat(indent);
   const total = arr.length;
+  const element = t(lang, "scan.element");
   for (let i = 0; i < arr.length; i += 1) {
     const label = `${key} (${i + 1}/${total})`;
     const item = arr[i];
     if (isObject(item)) {
       const keys = Object.keys(item);
       if (keys.length === 0) {
-        lines.push(`${pad}${label}: {} （空）`);
+        lines.push(`${pad}${label}: ${t(lang, "scan.emptyObject")}`);
         continue;
       }
       lines.push(`${pad}■ ${label}`);
-      renderObject(item, indent + 1, lines);
+      renderObject(item, indent + 1, lines, lang);
       continue;
     }
     if (Array.isArray(item)) {
       if (item.length === 0) {
-        lines.push(`${pad}${label}: [] （空）`);
+        lines.push(`${pad}${label}: ${t(lang, "scan.emptyArray")}`);
         continue;
       }
       lines.push(`${pad}■ ${label}`);
-      renderArray("(要素)", item, indent + 1, lines);
+      renderArray(element, item, indent + 1, lines, lang);
       continue;
     }
-    const s = formatScalar(item);
+    const s = formatScalar(item, lang);
     if (typeof item === "string" && item.includes("\n")) {
       lines.push(`${pad}${label}:`);
       for (const line of splitLines(item)) {
@@ -160,8 +168,8 @@ export function buildDataScanReport(
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     return [
-      `${label} を解釈できませんでした（生テキストを下に表示します）`,
-      `理由: ${reason}`,
+      t(lang, "scan.parseFail", { label }),
+      t(lang, "scan.reason", { reason }),
       "",
       raw.trim(),
       "",
@@ -170,22 +178,22 @@ export function buildDataScanReport(
 
   const reportKey =
     kind === "json" ? "scan.report.json" : "scan.report.yaml";
+  const rootDesc = describeRoot(root, lang);
   const lines: string[] = [
-    t(lang, reportKey) || `${label} スキャン表示`,
-    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`,
-    t(lang, "scan.root", { name: describeRoot(root) }) ||
-      `ルート: ${describeRoot(root)}`,
+    t(lang, reportKey),
+    t(lang, "scan.file", { name: fileLabel }),
+    t(lang, "scan.root", { name: rootDesc }),
     "",
   ];
 
   if (root === null || root === undefined) {
-    lines.push(formatScalar(root));
+    lines.push(formatScalar(root, lang));
   } else if (Array.isArray(root)) {
-    renderArray("(要素)", root, 0, lines);
+    renderArray(t(lang, "scan.element"), root, 0, lines, lang);
   } else if (isObject(root)) {
-    renderObject(root, 0, lines);
+    renderObject(root, 0, lines, lang);
   } else {
-    lines.push(formatScalar(root));
+    lines.push(formatScalar(root, lang));
   }
 
   lines.push("");

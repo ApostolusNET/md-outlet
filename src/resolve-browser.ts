@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { delimiter, join } from "node:path";
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 export type BrowserResolution = {
   kind: "executable";
@@ -89,19 +90,15 @@ export function systemBrowserCandidates(
   return out;
 }
 
-export function browserNotFoundMessage(plat: NodeJS.Platform = process.platform): string {
-  const base =
-    "PDF 用のブラウザが見つかりません。推奨環境は Windows + 最新の Microsoft Edge（安定版）+ Node 18 LTS です。";
+export function browserNotFoundMessage(
+  plat: NodeJS.Platform = process.platform,
+  lang: Lang = DEFAULT_LANG
+): string {
+  const base = t(lang, "msg.browserNotFound");
   if (plat === "win32") {
-    return (
-      base +
-      " Edge を入れるか、環境変数 MD_OUTLET_BROWSER に msedge.exe の絶対パスを設定してください。"
-    );
+    return base + t(lang, "msg.browserNotFoundWin");
   }
-  return (
-    base +
-    " Chrome または Edge を入れるか、MD_OUTLET_BROWSER / PUPPETEER_EXECUTABLE_PATH に実行ファイルの絶対パスを設定してください。"
-  );
+  return base + t(lang, "msg.browserNotFoundOther");
 }
 
 /**
@@ -115,13 +112,17 @@ export function browserNotFoundMessage(plat: NodeJS.Platform = process.platform)
  */
 export function resolvePdfBrowser(
   env: NodeJS.ProcessEnv = process.env,
-  plat: NodeJS.Platform = process.platform
+  plat: NodeJS.Platform = process.platform,
+  lang: Lang = DEFAULT_LANG
 ): BrowserResolution {
   const forced = envPath("MD_OUTLET_BROWSER", env);
   if (forced) {
     if (!existsSync(forced)) {
       throw new Error(
-        `MD_OUTLET_BROWSER のパスが見つかりません: ${forced}`
+        t(lang, "msg.browserEnvMissing", {
+          name: "MD_OUTLET_BROWSER",
+          path: forced,
+        })
       );
     }
     return { kind: "executable", path: forced, source: "MD_OUTLET_BROWSER" };
@@ -131,7 +132,10 @@ export function resolvePdfBrowser(
   if (pptr) {
     if (!existsSync(pptr)) {
       throw new Error(
-        `PUPPETEER_EXECUTABLE_PATH のパスが見つかりません: ${pptr}`
+        t(lang, "msg.browserEnvMissing", {
+          name: "PUPPETEER_EXECUTABLE_PATH",
+          path: pptr,
+        })
       );
     }
     return {
@@ -147,7 +151,7 @@ export function resolvePdfBrowser(
     }
   }
 
-  throw new Error(browserNotFoundMessage(plat));
+  throw new Error(browserNotFoundMessage(plat, lang));
 }
 
 export function formatBrowserResolution(r: BrowserResolution): string {

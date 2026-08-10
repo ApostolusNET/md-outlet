@@ -1,6 +1,6 @@
 {
   "name": "md-outlet",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Preferences for Markdown output — same source, your paper. Reproducible PDF & preview via versioned profiles.",
   "keywords": [
     "markdown",

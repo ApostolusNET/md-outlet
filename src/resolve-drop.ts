@@ -8,7 +8,8 @@ import {
   resolve,
 } from "node:path";
 import { listRecent } from "./recent-files.js";
-import { fileUrlToFsPath, isMarkdownPath } from "./resolve-md-link.js";
+import { fileUrlToFsPath } from "./resolve-md-link.js";
+import { isMarkdownPath } from "./file-kind.js";
 
 export interface DropResolveInput {
   /** File name from the browser File object */

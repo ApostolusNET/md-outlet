@@ -16,6 +16,8 @@ export type UiMsgBag = {
   saveViewOnly: (kindLabel: string) => string;
   pdfViewOnly: (kindLabel: string) => string;
   noSaveTarget: string;
+  noteNoFile: string;
+  pdfNoTarget: string;
   portNotUi: (port: number) => string;
   openFailed: string;
   tabSyncFailed: string;
@@ -32,6 +34,8 @@ export function createUiMsg(lang: Lang = DEFAULT_LANG): UiMsgBag {
     pdfViewOnly: (kindLabel: string) =>
       t(lang, "msg.pdfViewOnly", { kind: kindLabel }),
     noSaveTarget: t(lang, "msg.noSaveTarget"),
+    noteNoFile: t(lang, "msg.noteNoFile"),
+    pdfNoTarget: t(lang, "msg.pdfNoTarget"),
     portNotUi: (port: number) => t(lang, "msg.portNotUi", { port }),
     openFailed: t(lang, "msg.openFailed"),
     tabSyncFailed: t(lang, "msg.tabSyncFailed"),

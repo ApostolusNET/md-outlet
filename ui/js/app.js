@@ -169,11 +169,6 @@ function isDataDoc() {
   return DATA_DOC_KINDS.includes(currentDocKind());
 }
 
-/** Back-compat helper still used in a few spots. */
-function isXmlDoc() {
-  return currentDocKind() === "xml";
-}
-
 function dataDocLabel() {
   const k = currentDocKind();
   if (k === "xml") return "XML";

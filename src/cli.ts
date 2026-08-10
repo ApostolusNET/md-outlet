@@ -159,7 +159,7 @@ Init (Phase 3):
 UI (Phase 4):
   Local editor + preview + PDF. Markdown path is optional.
   With no file, starts empty and shows recent files to reopen.
-  Header「ガイド」menu opens start guide / sample.
+  Header Guide menu opens start guide / sample.
   Save YAML never overwrites bundled profiles/ (-o for a copy).
   Opens the browser by default; pass --no-open to skip.
   --simple   Shortcut for --profile simple-preview (ui default already)

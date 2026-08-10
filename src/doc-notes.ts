@@ -52,9 +52,9 @@ export function readDocNote(docPath: string): { path: string; text: string } {
 
 export function writeDocNote(docPath: string, text: string): { path: string; text: string } {
   const abs = normalizeDocPath(docPath);
-  if (!abs) throw new Error("メモを紐づけるファイルがありません");
+  if (!abs) throw new Error("NO_DOC_PATH");
   const file = noteFileForPath(abs);
-  if (!file) throw new Error("メモを紐づけるファイルがありません");
+  if (!file) throw new Error("NO_DOC_PATH");
   mkdirSync(dirname(file), { recursive: true });
   const record: DocNoteRecord = {
     version: 1,

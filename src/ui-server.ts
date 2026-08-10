@@ -7,7 +7,7 @@ import { renderHtml } from "./render-html.js";
 import { resolveDocument } from "./resolve-document.js";
 import { listBuiltInProfiles } from "./init-profile.js";
 import { listBuiltInThemes } from "./list-themes.js";
-import { openBrowser, openExternal } from "./open-browser.js";
+import { openBrowser } from "./open-browser.js";
 import {
   profileFromPayload,
   profileToObject,
@@ -578,8 +578,7 @@ img { max-width: 100%; height: auto; }
         }
         if (isDataDocPath(requested)) {
           json(res, 400, {
-            error:
-              "XML / JSON / YAML / TXT / LOG / CSV への保存は未対応です（閲覧のみ）。",
+            error: msg.saveViewOnly("XML / JSON / YAML / TXT / LOG / CSV"),
           });
           return;
         }
@@ -801,7 +800,7 @@ img { max-width: 100%; height: auto; }
         };
         const target = raw.path?.trim() || activePath() || "";
         if (!target) {
-          json(res, 400, { error: "メモを紐づけるファイルがありません" });
+          json(res, 400, { error: msg.noteNoFile });
           return;
         }
         if (typeof raw.text !== "string") {
@@ -818,8 +817,9 @@ img { max-width: 100%; height: auto; }
             docNotePath: saved.path,
           });
         } catch (err) {
+          const code = err instanceof Error ? err.message : String(err);
           json(res, 400, {
-            error: err instanceof Error ? err.message : String(err),
+            error: code === "NO_DOC_PATH" ? msg.noteNoFile : code,
           });
         }
         return;
@@ -873,7 +873,9 @@ img { max-width: 100%; height: auto; }
         const next = isAbsolute(requested)
           ? resolve(requested)
           : resolve(process.cwd(), requested);
-        // Legacy open-md: replace active when full so existing UI/tests keep working.
+        // Legacy alias: same open path as /api/tabs/open, but replaceWhenFull=true
+        // (swap active tab when at cap). Prefer /api/tabs/open for new clients (409 when full).
+        // Kept for tests and older callers that expect replace-on-full.
         const result = openDocPath(next, { replaceWhenFull: true, msg });
         if (!result.ok) {
           json(res, result.status, {
@@ -1012,7 +1014,7 @@ img { max-width: 100%; height: auto; }
           tabState = setActiveText(tabState, raw.markdown);
         }
         const base = raw.baseMd?.trim() || activePath();
-        const resolved = resolveMarkdownOpenLink(href, base);
+        const resolved = resolveMarkdownOpenLink(href, base, reqLang);
         if (!resolved.ok) {
           if (resolved.reason === "skip") {
             json(res, 200, { ok: false, skip: true, detail: resolved.detail });
@@ -1138,8 +1140,7 @@ img { max-width: 100%; height: auto; }
         if (!requested) {
           if (!mdAbs) {
             json(res, 400, {
-              error:
-                "PDF の保存先がありません。先に Markdown を開くか、保存先を指定してください。",
+              error: msg.pdfNoTarget,
             });
             return;
           }
@@ -1179,23 +1180,6 @@ img { max-width: 100%; height: auto; }
           "Content-Length": buf.byteLength,
         });
         res.end(buf);
-        return;
-      }
-
-      if (req.method === "POST" && path === "/api/open") {
-        const raw = JSON.parse(await readBody(req)) as { path?: string };
-        const target = raw.path?.trim();
-        if (!target) {
-          json(res, 400, { error: "Missing path" });
-          return;
-        }
-        const abs = resolve(process.cwd(), target);
-        if (!existsSync(abs)) {
-          json(res, 404, { error: msg.fileNotFound(abs) });
-          return;
-        }
-        openExternal(abs);
-        json(res, 200, { ok: true, path: abs });
         return;
       }
 

@@ -12,6 +12,10 @@ export type TextKind = "txt" | "log" | "csv";
 const MAX_CSV_ROWS = 500;
 const MAX_TEXT_CHARS = 400_000;
 
+function locNum(n: number, lang: Lang): string {
+  return n.toLocaleString(lang === "en" ? "en-US" : "ja-JP");
+}
+
 function stripBom(raw: string): string {
   return raw.replace(/^\uFEFF/, "");
 }
@@ -26,11 +30,18 @@ function splitLines(raw: string, trimTrailingEmpty = true): string[] {
   return lines;
 }
 
-function truncateNote(totalChars: number, shownChars: number): string[] {
+function truncateNote(
+  lang: Lang,
+  totalChars: number,
+  shownChars: number
+): string[] {
   if (totalChars <= shownChars) return [];
   return [
     "",
-    `… 以降省略（表示 ${shownChars.toLocaleString("ja-JP")} / 全体 ${totalChars.toLocaleString("ja-JP")} 文字）。必要なら分割するか、エディタで開いてください。`,
+    t(lang, "scan.truncateChars", {
+      shown: locNum(shownChars, lang),
+      total: locNum(totalChars, lang),
+    }),
   ];
 }
 
@@ -38,22 +49,21 @@ function truncateNote(totalChars: number, shownChars: number): string[] {
 export function buildTextScanReport(
   kind: "txt" | "log",
   raw: string,
-  fileLabel: string
+  fileLabel: string,
+  lang: Lang = DEFAULT_LANG
 ): string {
-  const label = kind === "log" ? "LOG" : "TXT";
   const full = stripBom(raw);
   const lines = splitLines(raw);
   const lineCount = lines.length === 1 && lines[0] === "" ? 0 : lines.length;
+  const reportKey = kind === "log" ? "scan.report.log" : "scan.report.txt";
 
   const header: string[] = [
-    `${label} 表示`,
-    `ファイル: ${fileLabel}`,
-    `行数: ${lineCount.toLocaleString("ja-JP")}`,
+    t(lang, reportKey),
+    t(lang, "scan.file", { name: fileLabel }),
+    t(lang, "scan.lines", { n: locNum(lineCount, lang) }),
   ];
   if (kind === "log") {
-    header.push(
-      "絞り込み: プレビュー上のフィルタ（Ctrl+Alt+F / ⌘⌥F でフォーカス）"
-    );
+    header.push(t(lang, "scan.logFilterHint"));
   }
   header.push("");
 
@@ -74,7 +84,7 @@ export function buildTextScanReport(
     return [
       ...header,
       shown,
-      ...truncateNote(body.length, shown.length),
+      ...truncateNote(lang, body.length, shown.length),
       "",
     ].join("\n");
   }
@@ -148,8 +158,8 @@ function delimiterLabel(d: string): string {
   return ",";
 }
 
-function cellDisplay(v: string): string {
-  if (v === "") return "（空）";
+function cellDisplay(v: string, lang: Lang): string {
+  if (v === "") return t(lang, "scan.empty");
   return v;
 }
 
@@ -165,17 +175,16 @@ export function buildCsvScanReport(
     return true;
   });
 
-  const title = t(lang, "scan.report.csv") || "CSV スキャン表示";
-  const fileLine =
-    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`;
+  const title = t(lang, "scan.report.csv");
+  const fileLine = t(lang, "scan.file", { name: fileLabel });
 
   if (!lines.length) {
     return [
       title,
       fileLine,
-      "行数: 0",
+      t(lang, "scan.lines", { n: "0" }),
       "",
-      "（空ファイル）",
+      t(lang, "scan.emptyFile"),
       "",
     ].join("\n");
   }
@@ -188,24 +197,28 @@ export function buildCsvScanReport(
   const dataRows = hasHeader ? rows.slice(1) : rows;
   const colCount = Math.max(...rows.map((r) => r.length), 0);
   const colNames = Array.from({ length: colCount }, (_, i) => {
-    if (!hasHeader) return `列${i + 1}`;
+    if (!hasHeader) return t(lang, "scan.colFallback", { n: i + 1 });
     const h = (header[i] || "").trim();
-    return h || `列${i + 1}`;
+    return h || t(lang, "scan.colFallback", { n: i + 1 });
   });
 
   const out: string[] = [
     title,
     fileLine,
-    `区切り: ${delimiterLabel(delimiter)}`,
-    `列: ${colNames.join(", ")}`,
+    t(lang, "scan.delimiter", { d: delimiterLabel(delimiter) }),
+    t(lang, "scan.columns", { cols: colNames.join(", ") }),
     hasHeader
-      ? `データ行: ${dataRows.length.toLocaleString("ja-JP")}（ヘッダ除く）`
-      : `データ行: ${dataRows.length.toLocaleString("ja-JP")}（ヘッダなし）`,
+      ? t(lang, "scan.dataRowsHeader", {
+          n: locNum(dataRows.length, lang),
+        })
+      : t(lang, "scan.dataRowsNoHeader", {
+          n: locNum(dataRows.length, lang),
+        }),
     "",
   ];
 
   if (!dataRows.length) {
-    out.push("（データ行なし）");
+    out.push(t(lang, "scan.noDataRows"));
     out.push("");
     return out.join("\n");
   }
@@ -213,16 +226,19 @@ export function buildCsvScanReport(
   const shown = dataRows.slice(0, MAX_CSV_ROWS);
   for (let i = 0; i < shown.length; i += 1) {
     const row = shown[i];
-    out.push(`■ 行 ${i + 1}`);
+    out.push(t(lang, "scan.row", { n: i + 1 }));
     for (let c = 0; c < colNames.length; c += 1) {
-      out.push(`  ${colNames[c]}: ${cellDisplay(row[c] ?? "")}`);
+      out.push(`  ${colNames[c]}: ${cellDisplay(row[c] ?? "", lang)}`);
     }
   }
 
   if (dataRows.length > MAX_CSV_ROWS) {
     out.push("");
     out.push(
-      `… 以降省略（表示 ${MAX_CSV_ROWS} / 全体 ${dataRows.length.toLocaleString("ja-JP")} 行）`
+      t(lang, "scan.truncateRows", {
+        shown: MAX_CSV_ROWS,
+        total: locNum(dataRows.length, lang),
+      })
     );
   }
   out.push("");
@@ -236,5 +252,5 @@ export function buildPlainDataScanReport(
   lang: Lang = DEFAULT_LANG
 ): string {
   if (kind === "csv") return buildCsvScanReport(raw, fileLabel, lang);
-  return buildTextScanReport(kind, raw, fileLabel);
+  return buildTextScanReport(kind, raw, fileLabel, lang);
 }

@@ -1,6 +1,6 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { DOCS_DIR, EXAMPLES_DIR, PKG_ROOT } from "./paths.js";
+import { DOCS_DIR, EXAMPLES_DIR } from "./paths.js";
 import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 export interface LibraryDoc {
@@ -61,8 +61,4 @@ export function defaultUiMarkdownPath(): string {
     );
   }
   return untitled;
-}
-
-export function packageRoot(): string {
-  return PKG_ROOT;
 }

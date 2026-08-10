@@ -1,12 +1,8 @@
 import { existsSync } from "node:fs";
-import { dirname, extname, isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-const MD_EXT = /\.(md|markdown)$/i;
-
-export function isMarkdownPath(p: string): boolean {
-  return MD_EXT.test(p);
-}
+import { isMarkdownPath } from "./file-kind.js";
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 /**
  * Convert file: URLs (including UNC `file:////server/share/...`) to a FS path.
@@ -55,7 +51,8 @@ export type ResolveMdLinkResult =
  */
 export function resolveMarkdownOpenLink(
   href: string,
-  baseMdPath?: string | null
+  baseMdPath?: string | null,
+  lang: Lang = DEFAULT_LANG
 ): ResolveMdLinkResult {
   const raw = href.trim();
   if (!raw || raw === "#" || raw.startsWith("#")) {
@@ -74,7 +71,7 @@ export function resolveMarkdownOpenLink(
       return {
         ok: false,
         reason: "error",
-        error: `file: URL を解釈できません: ${raw}`,
+        error: t(lang, "msg.fileUrlBad", { href: raw }),
       };
     }
   } else if (
@@ -93,7 +90,7 @@ export function resolveMarkdownOpenLink(
       return {
         ok: false,
         reason: "error",
-        error: "相対リンクを開くには、先に Markdown ファイルを開いてください",
+        error: t(lang, "msg.relLinkNeedBase"),
       };
     }
     candidate = resolve(dirname(resolve(baseMdPath)), decoded);

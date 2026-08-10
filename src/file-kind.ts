@@ -135,17 +135,8 @@ export function prettyXmlText(raw: string): string {
   return lines.join("\n");
 }
 
-const BANNERS: Record<DataDocKind, string> = {
-  xml: "XML スキャン表示",
-  json: "JSON スキャン表示",
-  yaml: "YAML スキャン表示",
-  txt: "TXT 表示",
-  log: "LOG 表示",
-  csv: "CSV スキャン表示",
-};
-
 function bannerFor(kind: DataDocKind, lang: Lang): string {
-  return t(lang, `scan.banner.${kind}`) || BANNERS[kind];
+  return t(lang, `scan.banner.${kind}`);
 }
 
 const FALLBACK_NAMES: Record<DataDocKind, string> = {
@@ -228,9 +219,4 @@ export function dataPreviewHtml(
 <pre>${escaped}</pre>
 </body>
 </html>`;
-}
-
-/** Back-compat alias — XML-only entry used by earlier callers. */
-export function xmlPreviewHtml(raw: string, fileLabel: string): string {
-  return dataPreviewHtml("xml", raw, fileLabel);
 }

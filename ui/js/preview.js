@@ -3,6 +3,11 @@
  */
 import { $, setStatus } from "./dom.js";
 import { apiFetch, getLang, t } from "./i18n.js";
+import {
+  filterLogLines,
+  formatFilteredLogLines,
+  splitLogLines,
+} from "./log-filter.js";
 
 let api = {};
 export function bindPreview(next) {
@@ -10,43 +15,13 @@ export function bindPreview(next) {
 }
 
 let logFilterTimer = null;
-const LOG_LEVEL_RE = {
-  ERROR: /\bERROR\b/i,
-  WARN: /\bWARN(?:ING)?\b/i,
-  INFO: /\bINFO\b/i,
-};
 
 let previewTimer = null;
-
-export function splitLogLinesClient(raw) {
-  const text = String(raw || "")
-    .replace(/^\uFEFF/, "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
-  if (!text) return [];
-  const lines = text.split("\n");
-  if (lines.length && lines[lines.length - 1] === "") lines.pop();
-  return lines;
-}
 
 export function selectedLogLevels() {
   return Array.from(
     document.querySelectorAll("#logFilterBar .log-chip[aria-pressed='true']")
   ).map((b) => b.getAttribute("data-level"));
-}
-
-export function filterLogLinesClient(lines, query, levels) {
-  const q = String(query || "").trim().toLowerCase();
-  const indices = [];
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (q && !line.toLowerCase().includes(q)) continue;
-    if (levels.length && !levels.some((lv) => LOG_LEVEL_RE[lv].test(line))) {
-      continue;
-    }
-    indices.push(i);
-  }
-  return indices;
 }
 
 export function escapeHtml(s) {
@@ -81,17 +56,13 @@ export function updateLogFilterCount(matched, total) {
 
 export function renderLogPreview() {
   const fileLabel = api.basenamePath(api.getState()?.mdPath || "document.log");
-  const lines = splitLogLinesClient($("mdEditor").value);
+  const lines = splitLogLines($("mdEditor").value);
   const query = $("logFilterQuery").value;
   const levels = selectedLogLevels();
-  const indices = filterLogLinesClient(lines, query, levels);
-  updateLogFilterCount(indices.length, lines.length);
+  const { indices, matched, total } = filterLogLines(lines, { query, levels });
+  updateLogFilterCount(matched, total);
 
-  const width = String(Math.max(lines.length, 1)).length;
-  const bodyLines = indices.map((i) => {
-    const n = String(i + 1).padStart(width, " ");
-    return n + " | " + (lines[i] ?? "");
-  });
+  const body = formatFilteredLogLines(lines, indices);
   const filterNote =
     query.trim() || levels.length
       ? t("log.filterActive")
@@ -99,15 +70,19 @@ export function renderLogPreview() {
   const report = [
     t("log.bannerTitle"),
     t("log.fileLabel", { name: fileLabel }),
-    t("log.lineCount", { n: lines.length.toLocaleString(getLang() === "en" ? "en-US" : "ja-JP") }),
+    t("log.lineCount", {
+      n: total.toLocaleString(getLang() === "en" ? "en-US" : "ja-JP"),
+    }),
     filterNote,
     "",
-    bodyLines.length ? bodyLines.join("\n") : t("log.noMatch"),
+    body || t("log.noMatch"),
     "",
   ].join("\n");
 
   const html =
-    "<!DOCTYPE html><html lang=\"ja\"><head><meta charset=\"utf-8\" />" +
+    "<!DOCTYPE html><html lang=\"" +
+    (getLang() === "en" ? "en" : "ja") +
+    "\"><head><meta charset=\"utf-8\" />" +
     "<title>" +
     escapeHtml(fileLabel) +
     "</title><style>" +

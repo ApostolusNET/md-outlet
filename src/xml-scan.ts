@@ -64,9 +64,12 @@ function stripNoise(xml: string): string {
     .trim();
 }
 
-export function parseXmlForScan(raw: string): XmlScanResult {
+export function parseXmlForScan(
+  raw: string,
+  lang: Lang = DEFAULT_LANG
+): XmlScanResult {
   const src = stripNoise(raw);
-  if (!src) return { ok: false, error: "空の XML です" };
+  if (!src) return { ok: false, error: t(lang, "scan.xml.empty") };
 
   const tokenRe = /<\/?([^\s/>]+)([^>]*?)\/?>|([^<]+)/g;
   const stack: XmlScanNode[] = [];
@@ -83,13 +86,19 @@ export function parseXmlForScan(raw: string): XmlScanResult {
 
       if (isClose) {
         if (!stack.length) {
-          return { ok: false, error: `閉じタグが多すぎます: </${name}>` };
+          return {
+            ok: false,
+            error: t(lang, "scan.xml.extraClose", { name }),
+          };
         }
         const top = stack[stack.length - 1];
         if (top.name !== name) {
           return {
             ok: false,
-            error: `タグの対応が不正です: <${top.name}> … </${name}>`,
+            error: t(lang, "scan.xml.mismatch", {
+              open: top.name,
+              close: name,
+            }),
           };
         }
         stack.pop();
@@ -107,7 +116,7 @@ export function parseXmlForScan(raw: string): XmlScanResult {
       } else if (stack.length) {
         stack[stack.length - 1].children.push(node);
       } else {
-        return { ok: false, error: "ルート要素が複数あります" };
+        return { ok: false, error: t(lang, "scan.xml.multiRoot") };
       }
       if (!isSelf) stack.push(node);
       continue;
@@ -123,10 +132,12 @@ export function parseXmlForScan(raw: string): XmlScanResult {
   if (stack.length) {
     return {
       ok: false,
-      error: `閉じられていないタグがあります: <${stack[stack.length - 1].name}>`,
+      error: t(lang, "scan.xml.unclosed", {
+        name: stack[stack.length - 1].name,
+      }),
     };
   }
-  if (!root) return { ok: false, error: "要素が見つかりません" };
+  if (!root) return { ok: false, error: t(lang, "scan.xml.noElement") };
   return { ok: true, root };
 }
 
@@ -151,13 +162,17 @@ function looksLikeMoneyName(name: string): boolean {
   );
 }
 
-export function formatMoneyValue(raw: string): string | null {
+export function formatMoneyValue(
+  raw: string,
+  lang: Lang = DEFAULT_LANG
+): string | null {
   const text = stripHtmlIsh(raw).replace(/,/g, "").trim();
-  if (!text) return "（空）";
+  if (!text) return t(lang, "scan.empty");
   if (!/^-?\d+$/.test(text)) return null;
   const n = Number(text);
   if (!Number.isFinite(n)) return null;
-  return `${n.toLocaleString("ja-JP")} 円`;
+  const formatted = n.toLocaleString(lang === "en" ? "en-US" : "ja-JP");
+  return t(lang, "scan.yen", { n: formatted });
 }
 
 function splitDateSuffix(
@@ -172,7 +187,8 @@ function splitDateSuffix(
 }
 
 function formatDateParts(
-  fields: Partial<Record<DatePartKey, string>>
+  fields: Partial<Record<DatePartKey, string>>,
+  lang: Lang
 ): string | null {
   const gengou = fields.Gengou?.trim();
   const year = fields.Year?.trim();
@@ -181,9 +197,9 @@ function formatDateParts(
   if (!gengou && !year && !month && !day) return null;
   const parts: string[] = [];
   if (gengou) parts.push(gengou);
-  if (year) parts.push(`${year}年`);
-  if (month) parts.push(`${month}月`);
-  if (day) parts.push(`${day}日`);
+  if (year) parts.push(t(lang, "scan.date.year", { n: year }));
+  if (month) parts.push(t(lang, "scan.date.month", { n: month }));
+  if (day) parts.push(t(lang, "scan.date.day", { n: day }));
   return parts.length ? parts.join("") : null;
 }
 
@@ -196,18 +212,18 @@ function leafValue(node: XmlScanNode): string {
   return bits.join(" · ");
 }
 
-function formatLeafDisplay(name: string, raw: string): string {
+function formatLeafDisplay(name: string, raw: string, lang: Lang): string {
   const cleaned = stripHtmlIsh(raw);
-  if (!cleaned) return "（空）";
+  if (!cleaned) return t(lang, "scan.empty");
   if (looksLikeMoneyName(name)) {
-    const money = formatMoneyValue(cleaned);
+    const money = formatMoneyValue(cleaned, lang);
     if (money) return money;
   }
   if (
     /^\d{4,}$/.test(cleaned.replace(/,/g, "")) &&
     /yen|円|kin|ryou/i.test(name)
   ) {
-    const money = formatMoneyValue(cleaned);
+    const money = formatMoneyValue(cleaned, lang);
     if (money) return money;
   }
   if (cleaned.includes("\n")) {
@@ -238,6 +254,7 @@ export type XmlScanOptions = {
 
 type ScanCtx = {
   labels: Record<string, string> | null;
+  lang: Lang;
 };
 
 function nodeLabel(
@@ -279,7 +296,7 @@ function renderChildren(
   for (const [prefix, parts] of prefixParts) {
     const keys = Object.keys(parts);
     if (keys.length < 2) continue;
-    const formatted = formatDateParts(parts);
+    const formatted = formatDateParts(parts, ctx.lang);
     if (!formatted) continue;
     dateLines.push({ prefix, text: formatted });
     for (const suffix of DATE_SUFFIXES) {
@@ -333,14 +350,14 @@ function renderNode(
       lines.push(`${pad}  @${k}: ${stripHtmlIsh(node.attrs[k])}`);
     }
     if (node.text) {
-      const t = formatLeafDisplay(node.name, node.text);
-      if (t.startsWith("\n")) {
+      const textDisp = formatLeafDisplay(node.name, node.text, ctx.lang);
+      if (textDisp.startsWith("\n")) {
         lines.push(`${pad}  (text):`);
-        for (const line of t.trim().split("\n")) {
+        for (const line of textDisp.trim().split("\n")) {
           lines.push(`${pad}    ${line}`);
         }
       } else {
-        lines.push(`${pad}  (text): ${t}`);
+        lines.push(`${pad}  (text): ${textDisp}`);
       }
     }
     renderChildren(node.children, indent + 1, lines, ctx);
@@ -350,7 +367,7 @@ function renderNode(
   let raw = leafValue(node);
   if (!raw && attrKeys.length === 0) raw = "";
   if (attrKeys.length && node.text) {
-    const formattedText = formatLeafDisplay(node.name, node.text);
+    const formattedText = formatLeafDisplay(node.name, node.text, ctx.lang);
     const attrBit = attrKeys.map((k) => `@${k}=${node.attrs[k]}`).join(" · ");
     if (formattedText.startsWith("\n")) {
       lines.push(`${pad}${label}: ${attrBit}`);
@@ -363,7 +380,7 @@ function renderNode(
     return;
   }
 
-  const display = formatLeafDisplay(node.name, raw || node.text || "");
+  const display = formatLeafDisplay(node.name, raw || node.text || "", ctx.lang);
   if (display.startsWith("\n")) {
     lines.push(`${pad}${label}:`);
     for (const line of display.trim().split("\n")) {
@@ -380,11 +397,12 @@ export function buildXmlScanReport(
   fileLabel: string,
   options: XmlScanOptions = {}
 ): string {
-  const parsed = parseXmlForScan(raw);
+  const lang = options.lang ?? DEFAULT_LANG;
+  const parsed = parseXmlForScan(raw, lang);
   if (!parsed.ok) {
     return [
-      "XML を解釈できませんでした（生テキストを下に表示します）",
-      `理由: ${parsed.error}`,
+      t(lang, "scan.parseFail", { label: "XML" }),
+      t(lang, "scan.reason", { reason: parsed.error }),
       "",
       raw.trim(),
       "",
@@ -392,33 +410,35 @@ export function buildXmlScanReport(
   }
 
   let labels: Record<string, string> | null = null;
-  let dictLine = "辞書: なし（タグ名のまま）";
+  let dictLine = t(lang, "scan.dict.none");
 
   if (options.noDict) {
     labels = null;
   } else if (options.labels) {
     labels = options.labels;
     dictLine = options.dictName
-      ? `辞書: ${options.dictName}`
-      : "辞書: 明示指定";
+      ? t(lang, "scan.dict.named", { name: options.dictName })
+      : t(lang, "scan.dict.explicit");
   } else {
     const picked = pickXmlDict(parsed.root, listXmlDicts(options.dictsDir));
     if (picked) {
       labels = picked.dict.labels;
-      dictLine = `辞書: ${picked.dict.name}（一致 ${picked.hits}）`;
+      dictLine = t(lang, "scan.dict.picked", {
+        name: picked.dict.name,
+        hits: picked.hits,
+      });
     }
   }
 
-  const lang = options.lang ?? DEFAULT_LANG;
   const rootLabel = labelXmlName(parsed.root.name, labels);
   const lines: string[] = [
-    t(lang, "scan.report.xml") || "XML スキャン表示",
-    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`,
-    t(lang, "scan.root", { name: rootLabel }) || `ルート: ${rootLabel}`,
+    t(lang, "scan.report.xml"),
+    t(lang, "scan.file", { name: fileLabel }),
+    t(lang, "scan.root", { name: rootLabel }),
     dictLine,
     "",
   ];
-  renderNode(parsed.root, 0, lines, { labels });
+  renderNode(parsed.root, 0, lines, { labels, lang });
   lines.push("");
   return lines.join("\n");
 }
