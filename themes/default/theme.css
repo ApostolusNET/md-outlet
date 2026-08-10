@@ -1,6 +1,6 @@
 /* md-outlet default theme
- * 目的: 表罫線・コード背景・本文タイポを最初から保証する。
- * このテーマ 1 枚で「表が消える」「コード背景が消える」が起きないこと。
+ * Goal: guarantee table borders, code backgrounds, and body typography from the start.
+ * One stylesheet should prevent “tables disappear” / “code background disappears”.
  */
 
 * {
@@ -169,8 +169,8 @@ img {
 }
 
 /* --- Page break utility ------------------------------------------------ */
-/* SPEC 準拠: 手書きの <div class="page-break"></div> を尊重 */
-/* 印刷・PDF では改ページ。画面プレビューでは区切りが見えるようにする。 */
+/* SPEC: honor author-written <div class="page-break"></div> */
+/* Print/PDF: real page break. Screen preview: visible separator. */
 
 .page-break,
 .md-outlet-page-break {
@@ -194,7 +194,7 @@ img {
 
   .page-break::after,
   .md-outlet-page-break::after {
-    content: "改ページ";
+    content: var(--md-outlet-page-break-label, "改ページ");
     position: absolute;
     top: -0.7em;
     left: 50%;
@@ -252,7 +252,7 @@ img {
 }
 
 @media screen {
-  /* ひな形差がプレビューでも分かるように（PDF には影響しない） */
+  /* Make template differences visible in preview (no effect on PDF). */
   .ops-manual h1 {
     padding-top: 0.35em;
     border-top: 2px solid #c5d4f0;

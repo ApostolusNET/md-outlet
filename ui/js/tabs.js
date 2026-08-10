@@ -2,6 +2,7 @@
  * Document tabs, SendTo/CLI handoff polling, attention cues.
  */
 import { $, setStatus } from "./dom.js";
+import { apiFetch, t } from "./i18n.js";
 import { flushDocNoteIfNeeded } from "./notes.js";
 
 let api = {};
@@ -142,9 +143,9 @@ function notifyDesktop(kind, message) {
     if (Notification.permission !== "granted") return;
     if (!document.hidden) return;
     const n = new Notification(
-      kind === "err" ? "md-outlet（エラー）" : "md-outlet",
+      kind === "err" ? t("notify.titleErr") : t("notify.titleOk"),
       {
-        body: message || (kind === "err" ? "操作できませんでした" : "ファイルを開きました"),
+        body: message || (kind === "err" ? t("notify.bodyErr") : t("notify.bodyOk")),
         silent: true,
       }
     );
@@ -174,7 +175,7 @@ export function consumeUiFlash(data) {
   const kind = f.kind === "err" ? "err" : "ok";
   const message =
     f.message ||
-    (kind === "err" ? "ファイルを開けませんでした" : "更新しました");
+    (kind === "err" ? t("toast.flashOpenFail") : t("toast.flashUpdated"));
   setStatus(message, kind);
   pulseTabBar(kind);
   flashDocumentTitle(kind);
@@ -192,7 +193,7 @@ export async function pullExternalTabChanges() {
   if (api.getTabSwitchBusy() || api.getTabPullBusy()) return;
   api.setTabPullBusy(true);
   try {
-    const res = await fetch("/api/state", { cache: "no-store" });
+    const res = await apiFetch("/api/state", { cache: "no-store" });
     if (!res.ok) return;
     const data = await res.json();
     const flashed = consumeUiFlash(data);
@@ -240,8 +241,9 @@ export async function pullExternalTabChanges() {
     else $("frame").srcdoc = "";
     if (!flashed) {
       setStatus(
-        "タブを更新しました: " +
-          (api.basenamePath(st?.mdPath || "") || "—"),
+        t("toast.tabsUpdated", {
+          name: api.basenamePath(st?.mdPath || "") || t("preview.idle"),
+        }),
         "ok"
       );
       pulseTabBar("ok");
@@ -273,8 +275,8 @@ function tabKindShort(kind) {
 
 function tabPathTip(tab) {
   const path = String(tab.path || "").trim();
-  const name = tab.label || api.basenamePath(path) || "（無題）";
-  const dirty = api.getTabDirtyById()[tab.id] ? "未保存あり" : "保存済み";
+  const name = tab.label || api.basenamePath(path) || t("label.untitled");
+  const dirty = api.getTabDirtyById()[tab.id] ? t("tab.unsaved") : t("tab.saved");
   const kind = tabKindShort(tab.kind);
   if (!path) return kind + "  " + name + "\n" + dirty;
   return kind + "  " + name + "\n" + path + "\n" + dirty;
@@ -353,7 +355,7 @@ export function renderTabBar() {
     if (tabDirtyById[tab.id]) {
       const dot = document.createElement("span");
       dot.className = "tab-dirty";
-      dot.setAttribute("aria-label", "未保存");
+      dot.setAttribute("aria-label", t("tab.unsavedAria"));
       main.appendChild(dot);
     }
     main.addEventListener("click", () => {
@@ -363,8 +365,8 @@ export function renderTabBar() {
     const close = document.createElement("button");
     close.type = "button";
     close.className = "tab-close";
-    close.setAttribute("aria-label", "タブを閉じる");
-    close.title = "閉じる (Ctrl+Alt+W / 中クリック)";
+    close.setAttribute("aria-label", t("tab.closeAria"));
+    close.title = t("tab.closeTitle");
     close.textContent = "×";
     close.addEventListener("click", (e) => {
       e.preventDefault();
@@ -408,14 +410,14 @@ export async function syncActiveEditorToServer() {
   if (!state?.mdPath && !state?.activeTabId) return true;
   rememberActiveDirty();
   try {
-    const res = await fetch("/api/tabs/sync", {
+    const res = await apiFetch("/api/tabs/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ markdown: $("mdEditor").value }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setStatus(data.error || "タブ内容の同期に失敗しました", "err");
+      setStatus(data.error || t("toast.tabSyncFail"), "err");
       return false;
     }
     const data = await res.json().catch(() => null);
@@ -435,7 +437,7 @@ export async function runSwitchTab(id) {
   try {
     await flushDocNoteIfNeeded();
     rememberActiveDirty();
-    const res = await fetch("/api/tabs/switch", {
+    const res = await apiFetch("/api/tabs/switch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -445,7 +447,7 @@ export async function runSwitchTab(id) {
     });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "タブを切り替えられませんでした", "err");
+      setStatus(data.error || t("toast.tabSwitchFail"), "err");
       return;
     }
     api.applyActiveMarkdown(data);
@@ -460,7 +462,7 @@ export async function runSwitchTab(id) {
     }
     if (kind === "log") api.resetLogFilterControls(false);
     setStatus(
-      "タブ: " + (api.basenamePath(data.path || data.mdPath || "") || "—"),
+      t("toast.tabLabel", { name: api.basenamePath(data.path || data.mdPath || "") || t("preview.idle") }),
       "ok"
     );
     await api.refreshPreview();
@@ -482,17 +484,17 @@ export async function runCloseTab(id) {
     await runSwitchTab(id);
     if (api.getState()?.activeTabId !== id) return;
   }
-  if (!(await api.ensureMdClean("タブを閉じる"))) return;
+  if (!(await api.ensureMdClean("action.closeTab"))) return;
 
   try {
-    const res = await fetch("/api/tabs/close", {
+    const res = await apiFetch("/api/tabs/close", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "タブを閉じられませんでした", "err");
+      setStatus(data.error || t("toast.tabCloseFail"), "err");
       return;
     }
     delete api.getTabDirtyById()[id];
@@ -505,7 +507,7 @@ export async function runCloseTab(id) {
       api.setLastPdfPath(null);
       api.setDefaultPdfPath("");
       api.hideExportBanner();
-      setStatus("閉じました — 最近のファイルから選べます", "ok");
+      setStatus(t("toast.closed"), "ok");
       return;
     }
     api.setDirtyMd(
@@ -519,7 +521,7 @@ export async function runCloseTab(id) {
       $("btnToggleEditor").classList.remove("active");
     }
     if (kind === "log") api.resetLogFilterControls(false);
-    setStatus("タブを閉じました", "ok");
+    setStatus(t("toast.tabClosedShort"), "ok");
     await api.refreshPreview();
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");

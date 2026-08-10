@@ -1,273 +1,98 @@
-# md-outlet スタートガイド
+# md-outlet Getting Started
 
-*Markdown を書いて、見たまま PDF にする — はじめての 5 分*
+*Write Markdown, preview it, export the same look as PDF — about 5 minutes*
 
-このツールは **簡易エディター＋PDF 出力** です。  
-ブラウザでプレビューしながら書き、同じ見た目の PDF を保存できます。
+**Languages:** [English](START.md) · [日本語](START.ja.md)
+
+md-outlet is a **local Markdown editor + PDF export** tool.  
+Preview in the browser while you write; PDF uses the same HTML pipeline.
 
 ---
 
-## 必要なもの
+## Requirements
 
-**推奨環境:**
+**Recommended:**
 
 - Windows
-- 最新の Microsoft Edge（安定版）
-- [Node.js](https://nodejs.org/) 18 以降（LTS 推奨）
+- Current Microsoft Edge (stable)
+- [Node.js](https://nodejs.org/) 18+ (LTS recommended)
 
-PDF は **システムに入っている Edge / Chrome** を使います（別途 Chromium はダウンロードしません）。パスを指定する場合は環境変数 `MD_OUTLET_BROWSER`（実行ファイルの絶対パス）。  
-**Linux** は Docker（Chromium）で CLI／PDF／テストを確認済み。**macOS** は未確認。
-
-ターミナル（PowerShell やコマンドプロンプト）が使えれば十分です。
+PDF uses **system Edge / Chrome** (no bundled Chromium download). Optional: `MD_OUTLET_BROWSER` = absolute path to the browser executable.  
+**Linux** checked with Docker (Chromium). **macOS** not verified yet.
 
 ---
 
-## 1. 設置
+## 1. Install
 
-好きな場所にフォルダを置けます（例: `C:\Tools\md-outlet\`、ドキュメント配下、USB など）。  
-フォルダ名を `md-outlet` 以外に変えても構いません。
+Unpack anywhere (for example `C:\Tools\md-outlet\`). Renaming the folder is fine.
 
-**Windows** は `start-ui.bat`、**macOS / Linux** は `start-ui.sh` が初回に `npm install` まで行います。  
-あらかじめ入れたい場合だけ:
+**Windows:** double-click `start-ui.bat` (runs `npm install` on first launch).  
+**macOS / Linux:** `./start-ui.sh` (first time: `chmod +x start-ui.sh`).
+
+Or manually:
 
 ```bash
-cd （このツールのフォルダ）
+cd (this folder)
 npm install
 ```
 
-初回は依存のインストールがあります（PDF 用の別 Chromium は入れません。システムの Edge を使います）。
+If Node.js is missing, install **LTS** from [nodejs.org](https://nodejs.org/).
 
-Node.js がまだ無い場合は [nodejs.org](https://nodejs.org/) の **LTS** を入れてください（起動スクリプトも同じ案内を出します）。
+### Moving or renaming the folder
 
-### 置き場所・フォルダ名を変えるとき
-
-| やること | 影響 |
-|----------|------|
-| 好きな場所へ展開／移動 | 問題なし。そのフォルダ内の `start-ui.bat` から起動 |
-| フォルダ名の変更 | 起動は問題なし |
-| **「送る」を使っている** | ショートカットが古いパスのまま → **新しい場所で `install-sendto.bat` を再実行** |
-| 更新で別フォルダに展開 | 同上。古いフォルダを消す前に新側で SendTo を入れ直す |
-| コピーを複数常用 | どれが「送る」の実体か分からなくなるので非推奨 |
-
-一度決めた場所に固定するのがいちばん楽です。移したあとは SendTo の再登録だけ忘れなければ大丈夫です。
+| Action | Effect |
+|--------|--------|
+| Move / unpack elsewhere | OK — start from that folder’s `start-ui.bat` |
+| Rename folder | OK for launch |
+| Using **Send to** | Re-run `install-sendto.bat` in the new location |
+| Update into a new folder | Same — re-register Send to, then remove the old folder |
 
 ---
 
-## 2. 起動（いちばんおすすめ）
+## 2. Launch
 
-### Windows（ダブルクリック）
+### Windows
 
-エクスプローラーで **`start-ui.bat`** をダブルクリックします。
+Double-click **`start-ui.bat`**.
 
-- Node.js が無ければ案内を出して止まります → [nodejs.org](https://nodejs.org/) で LTS を入れてから再実行  
-- 初回だけ `npm install` が走ります  
-- その後 UI が開き、**空のスタート画面**（最近のファイル一覧）が表示されます
-- スタートガイドはヘッダーの **ガイド** からいつでも開けます  
+- Empty start screen with recent files
+- Open the start guide anytime from the header **Guide** menu (language switch is on the far right)
 
-### macOS / Linux
-
-ターミナルで:
-
-```bash
-cd md-outlet
-chmod +x start-ui.sh   # 初回だけ
-./start-ui.sh
-```
-
-Finder からダブルクリックする場合も、先に `chmod +x` が必要なことがあります。
-
-### ターミナルから（共通）
+### Terminal
 
 ```bash
 npx md-outlet ui
 ```
 
-ブラウザが自動で開きます（開かない場合は表示された `http://127.0.0.1:5760/` を開く）。
+Stop by closing the browser md-outlet tab (or `Ctrl+C` in the terminal / bat window).
 
-引数なしでは **空の状態** で始まり、最近開いた Markdown の一覧から選べます（履歴は `md-outlet/.md-outlet-recent.json`。AppData は使いません）。  
-
-見た目・挙動を直すとき（開発者向け）:
-
-| 場所 | 内容 |
-|------|------|
-| `ui/index.html` | マークアップのみ（殼） |
-| `ui/styles.css` | 画面 CSS |
-| `ui/js/*.js` | 挙動（ES modules。入口は `app.js`） |
-
-ヘッダー右の **ガイド** メニューから、いつでも次を開けます。
-
-- スタートガイド（この文書）
-- サンプル文書（`examples/sample.md`）
-
-止めるときは **ブラウザの md-outlet タブを閉じる**のが確実です。ターミナル／`start-ui.bat` の窓から起動した場合は、そこで `Ctrl+C` でも止められます。
-
-特定のファイルから始めたいときだけ:
+Open a specific file:
 
 ```bash
 npx md-outlet ui path/to/notes.md
 ```
 
-`.xml` / `.json` / `.yaml` / `.txt` / `.log` / `.csv`（`.tsv`）も開けます（**閲覧オマケ**。スキャン／テキスト表示のみ。PDF・保存は Markdown のみ）。XML は任意の辞書（同梱 `dicts/example.yaml`、自分用は `dicts/local/*.yaml`）が効きます。LOG はプレビュー上のフィルタ（含む行のみ・ERROR/WARN/INFO）と Ctrl+Alt+F が使えます（ファイルは書き換えません）。  
-「送る → md-outlet」は **PowerShell ランチャー**経由です（`install-sendto.bat`）。日本語パスも可。  
-**すでに UI が動いていれば、そのウィンドウにタブで開きます**（最大 3。満杯ならダイアログで拒否）。止めるときは **ブラウザの md-outlet タブを閉じる**。
+### Windows “Send to”
 
-Windows では `start-ui.bat` にパスを渡せます（ファイルを bat にドラッグ＆ドロップしても同じ）:
+1. Run **`install-sendto.bat`** once  
+2. Right-click a file → **Send to** → **md-outlet**  
 
-```bat
-start-ui.bat path\to\notes.md
-```
-
-### Windows: エクスプローラーの「送る」から開く
-
-1. **`install-sendto.bat`** をダブルクリック（一度だけ。設定更新時も再実行。PowerShell なら `.\install-sendto.bat`）  
-2. エクスプローラーでファイルを右クリック → **送る** → **md-outlet**  
-   （`.md` / `.xml` / `.json` / `.yaml` / `.txt` / `.log` / `.csv` など）
-
-解除は **`uninstall-sendto.bat`**。
-
-**置き場所の注意:** 「送る」のショートカットは、登録したときのフォルダパスを覚えます。  
-ツールを **移動・リネーム・別場所へ更新展開**したら、**いま使っているフォルダで** `install-sendto.bat` を再実行してください。  
-置き場所・名前の変え方の表は [§1 設置](#1-設置) を参照。
-
-| 状況 | 動き |
-|------|------|
-| まだ UI がない | 新規起動。送る用のコンソールは **非表示**（エラー時だけダイアログ） |
-| すでに UI がある | **既存にタブ追加**（余分なシェルも、ブラウザタブの二重化もしない） |
-| タブがすでに 3 つ | 開かない。ダイアログで上限を案内 |
-| 終了 | **ブラウザの md-outlet タブ**を閉じる（サーバも止まる） |
-
-`start-ui.bat` をダブルクリックしたときや `npm run ui` のターミナルは、従来どおりログが見える窓です。止めるときはその窓で Ctrl+C でも可。
+If the UI is already running, the file opens as a new tab (max 3).
 
 ---
 
-## 3. 画面の見方
+## 3. First PDF
 
-| 場所 | 役割 |
-|------|------|
-| ヘッダー直下 | **文書タブ**（最大 3。クリックで切替、× で閉じる。MD は未保存ドット） |
-| 左 | **書式のひな形・用紙・見た目・メモ・詳細設定**（折りたたみ。用紙／見た目は見出し右に要約）。**メモは正本に書かず** 同じフォルダの `*.md-outlet-note.json` に保存（フォルダごと持ち運び可）。左上 `‹` / `›` または Ctrl+Alt+B でレール化 |
-| 右 | ライブプレビュー（ファイル未選択時は最近ファイルの一覧） |
-| 中央 | **MDメニュー → 編集** で開く Markdown エディター（閲覧オマケは生テキスト） |
+1. Open a file (recent list, **MD menu → Open / New**, or **Guide**)  
+2. **MD menu → Edit**, change a little text  
+3. Confirm the preview updates  
+4. **Export PDF** → overwrite or save as  
 
-ヘッダー（左から）:
-
-1. **MDメニュー** — 新規作成 (Ctrl+Alt+N) / 開く (Ctrl+Alt+O) / 編集 (Ctrl+Alt+E) / 保存 (Ctrl+Alt+S) / 閉じる (Ctrl+Alt+W)  
-2. **PDFに出力** — 上書き or 別名で PDF 保存（**アクティブな Markdown** のみ）  
-3. **Yaml設定保存** — 紙面設定をファイルに保存  
-4. **ガイド** — スタートガイド／サンプル文書  
-
-
-文書タブをすべて閉じると「最近のファイル」画面に戻ります（サーバは動いたまま）。そのブラウザタブ自体を閉じるとプロセス終了です。
-
-流れのイメージ:
-
-**開く／送る →（必要ならタブ切替）→ 書く → プレビューで確認 → PDF に出す**
+For a longer walkthrough with screenshots, see the [Japanese start guide](START.ja.md).
 
 ---
 
-## 4. はじめての PDF
+## Links
 
-1. 最近のファイルをクリックするか、**MDメニュー → 開く / 新規作成**（または **ガイド**）で文書を用意する  
-2. **MDメニュー → 編集** を押して本文を少し変える  
-2. 右のプレビューが変わることを確認  
-3. **PDFに出力** → **上書き保存**（または **別名で保存**）  
-4. バナーの **PDF を開く**、または新しいタブで PDF を確認  
-
-保存先は作業フォルダ基準です（例: `examples/sample.pdf`）。
-
----
-
-## 4.5. プレビューと PDF のちがい（短い話）
-
-同じ Markdown・同じ書式設定で描画します。見た目はほぼ一致しますが、次だけ違います。
-
-| | プレビュー | PDF |
-|--|-----------|-----|
-| 余白まわり | 画面用の左右パディングあり | 用紙の余白設定どおり |
-| 拡大縮小 | なし | ひな形の **scale** が効く |
-| 画像 | MD と同じフォルダの相対パスを配信 | 同じパスを埋め込み（無い画像は欠けても落ちない） |
-| 改ページ | 画面上に「改ページ」区切り線として表示 | 実際に用紙が分かれる（区切り線は出ない） |
-
-「画面で読める」＝「紙に出す」が目標です。細部のずれは上の表を疑ってください。
-
----
-
-## 5. 自分のメモを開く／作る
-
-### 既存ファイルを開く
-
-**MDメニュー → 開く** で、UI 内の一覧から選びます。最初は **`md-outlet`** です。  
-**場所** からローカルドライブや **WSL**（`\\wsl.localhost\Ubuntu-24.04\…`）へジャンプできます。**↑** で親へ、**Home** で `md-outlet` に戻ります。  
-パス手打ちも可（例: `C:\Notes\idea.md` や `\\wsl.localhost\Ubuntu-24.04\home\you\note.md`）。WSL が一覧に出ないときは、ディストロが起動しているか確認してください。
-### 新規作成
-
-**MDメニュー → 新規作成** → 保存先を入力（例: `./my-notes.md`）→ **作成**  
-エディターが開き、タイトル付きの空ドキュメントから書けます。
-
-未保存の変更があるときは、開く／新規の前に確認が出ます。
-
----
-
-## 6. 見た目を変える（かんたん）
-
-左の **書式のひな形** で切り替えます（画面の並びは変わりません）。
-
-| ひな形 | 向いている用途 |
-|--------|----------------|
-| 気軽な閲覧（既定） | 下書き・ざっと見る |
-| 一般文書 | 普通の文書 |
-| マニュアル（章ごと改ページ） | 章（`#`。文書に `#` が1つだけのときは `##`）の前で改ページ |
-
-**用紙**（向き・余白）と **見た目**（テーマ・見出し改ページ）も左で変えられます。  
-テーマ例: 標準 / コンパクト / **フォリオ**（見出し明朝・表ヘッダ帯など装飾多め）。  
-細かい項目は **詳細設定** を開いてください。  
-気に入ったら **Yaml設定保存** で残しましょう（同梱の設定はそのまま上書きされません）。
-
----
-
-## 7. 改ページのコツ
-
-- 任意の位置: エディターの **改ページ**  
-- 表などを途中で切りたくない: 範囲を選んで **まとめて表示**  
-- 章ごと: ひな形「マニュアル」、または左の「章ごとに改ページ」（`#` が少ない文書では `##` を章として扱う）
-
----
-
-## 8. 次に試すもの
-
-ヘッダーの **ガイド** から開けます（起動時のパス指定は不要です）。
-
-| メニュー | 内容 |
-|----------|------|
-| スタートガイド | この文書 |
-| サンプル文書 | 基本サンプル（`examples/sample.md`） |
-
-詳しい仕様は [README.md](../README.md) / [SPEC.md](../SPEC.md) を参照。
-
----
-
-## うまくいかないとき
-
-| 症状 | 確認 |
-|------|------|
-| `start-ui.bat` / `start-ui.sh` がすぐ終わる | Node.js 未導入のことが多い。[nodejs.org](https://nodejs.org/) から LTS を入れる |
-| ブラウザが開かない | ターミナル／黒い窓に出た URL を手動で開く。`--no-open` を付けていないか |
-| PDF がどこか分からない | Export 後の緑バナーにパスが出る。「PDF を開く」を押す |
-| `npx` でエラー | `md-outlet` フォルダで `npm install` したか。Node の版を確認 |
-| プレビューが古い | 右は自動更新。まだなら **MDメニュー → 編集** で内容を確認 |
-| 画像が出ない | 画像は Markdown と同じフォルダ（またはその下）に置く。`../` で外へ出るパスは拒否されます |
-| プレビューの `.md` リンクが Not Found | ブラウザがサーバ上の URL と誤認するため。UI 再起動後はクリックでエディタが開きます。書き方は `[表示](./sheet.md)` または `file:////wsl.localhost/Distro/home/.../a.md` |
-| ショートカット | すべて `Ctrl+Alt+`（ブラウザの Ctrl 系と衝突しない）: `E` 編集 / `S` 保存 / `O` 開く / `N` 新規 / `W` 文書タブを閉じる / `F` 検索（MD は編集内、LOG はフィルタ欄） / `B` 設定パネル開閉。中クリックでもタブを閉じる。`Esc` は検索バー／戻る・モーダル閉じ |
-| 未保存のままブラウザを閉じる | 確認ダイアログが出る（文言はブラウザ任せが多い）。文書タブの × / `Ctrl+Alt+W` ならアプリ側の保存確認が使える |
-| 「タブが上限（3）」 | 文書タブは最大 3。送る側のダイアログに加え、開いている UI にもトーストが出る。不要なタブを × で閉じてから再度開く／送る |
-| 「送る」で何も起きない／古い案内どおりポート競合 | `install-sendto.bat` を再実行（ショートカット更新）。すでに UI があれば既存にタブ追加されるのが正常 |
-| 「送る」が古いフォルダを開く／見つからない | フォルダを移したか、新しい zip を別場所に置いた可能性大。**今使っているフォルダで** `install-sendto.bat` を再実行 |
-| 「Markdown too large」 | 約 200 万文字まで。長い文書は分割してください |
-| PDF が失敗する／ブラウザ関連エラー | 推奨は Windows + 最新 Edge。ログの `PDF browser:` またはエラー文を確認。`MD_OUTLET_BROWSER` に `msedge.exe` の絶対パスを設定 |
-
----
-
-## このツールの一言
-
-同じ Markdown から、**いつも同じ紙面の PDF** を出せるようにする「出力の好み」レイヤです。  
-まずは UI で書いて出して、慣れたらテンプレートや YAML を育ててください。
+- [README (English)](../README.md) · [README (日本語)](../README.ja.md)
+- [GitHub Releases](https://github.com/ApostolusNET/md-outlet/releases) (zip download)

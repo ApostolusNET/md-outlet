@@ -2,6 +2,7 @@
  * Per-document scratch notes (sidecar `*.md-outlet-note.json`).
  */
 import { $ } from "./dom.js";
+import { apiFetch, t } from "./i18n.js";
 
 let getState = () => null;
 let setStatus = () => {};
@@ -29,7 +30,7 @@ function formatDocNoteError(raw, fallback) {
   if (!msg || /^not found$/i.test(msg)) {
     return (
       fallback ||
-      "メモAPIがありません。md-outlet UI を一度終了して再起動してください。"
+      t("note.apiMissing")
     );
   }
   return msg;
@@ -39,22 +40,22 @@ export function updateNotePanelHint() {
   const hint = $("notePanelHint");
   if (!hint) return;
   if (!$("docNote") || $("docNote").disabled) {
-    hint.textContent = "ファイルを開くと使えます";
+    hint.textContent = t("note.needFile");
     hint.removeAttribute("title");
     return;
   }
   if (docNoteSaveError) {
-    hint.textContent = "保存失敗";
+    hint.textContent = t("note.saveFailHint");
     hint.title = docNoteSaveError;
     return;
   }
   const text = $("docNote").value.trim();
   if (docNoteDirty) {
-    hint.textContent = "保存中…（同フォルダ）";
+    hint.textContent = t("note.saving");
     hint.removeAttribute("title");
     return;
   }
-  hint.textContent = text ? "メモあり（同フォルダ）" : "正本には書きません";
+  hint.textContent = text ? t("note.hasText") : t("aside.noteHint");
   hint.removeAttribute("title");
 }
 
@@ -105,7 +106,7 @@ async function loadDocNoteForPath(path) {
     return;
   }
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       "/api/doc-note?path=" + encodeURIComponent(path),
       { cache: "no-store" }
     );
@@ -114,7 +115,7 @@ async function loadDocNoteForPath(path) {
       throw new Error(
         formatDocNoteError(
           data.error,
-          "メモの読み込みに失敗しました。UI を再起動してください。"
+          t("note.loadFail")
         )
       );
     }
@@ -163,7 +164,7 @@ async function saveDocNoteNow(forcePath) {
   const ta = $("docNote");
   if (!path || !ta) return;
   const text = ta.value;
-  const res = await fetch("/api/doc-note", {
+  const res = await apiFetch("/api/doc-note", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path, text }),
@@ -172,7 +173,7 @@ async function saveDocNoteNow(forcePath) {
   if (!res.ok) {
     docNoteSaveError = formatDocNoteError(
       data.error,
-      "メモの保存に失敗しました"
+      t("note.saveFail")
     );
     updateNotePanelHint();
     setStatus(docNoteSaveError, "err");

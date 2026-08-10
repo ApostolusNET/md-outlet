@@ -5,6 +5,8 @@
  * - csv/tsv: row scan with header column names
  */
 
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
+
 export type TextKind = "txt" | "log" | "csv";
 
 const MAX_CSV_ROWS = 500;
@@ -152,17 +154,25 @@ function cellDisplay(v: string): string {
 }
 
 /** CSV / TSV scan report. */
-export function buildCsvScanReport(raw: string, fileLabel: string): string {
+export function buildCsvScanReport(
+  raw: string,
+  fileLabel: string,
+  lang: Lang = DEFAULT_LANG
+): string {
   const lines = splitLines(raw).filter((l, i, arr) => {
     // drop a single trailing empty line from final newline
     if (i === arr.length - 1 && l === "") return false;
     return true;
   });
 
+  const title = t(lang, "scan.report.csv") || "CSV スキャン表示";
+  const fileLine =
+    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`;
+
   if (!lines.length) {
     return [
-      "CSV スキャン表示",
-      `ファイル: ${fileLabel}`,
+      title,
+      fileLine,
       "行数: 0",
       "",
       "（空ファイル）",
@@ -184,8 +194,8 @@ export function buildCsvScanReport(raw: string, fileLabel: string): string {
   });
 
   const out: string[] = [
-    "CSV スキャン表示",
-    `ファイル: ${fileLabel}`,
+    title,
+    fileLine,
     `区切り: ${delimiterLabel(delimiter)}`,
     `列: ${colNames.join(", ")}`,
     hasHeader
@@ -222,8 +232,9 @@ export function buildCsvScanReport(raw: string, fileLabel: string): string {
 export function buildPlainDataScanReport(
   kind: TextKind,
   raw: string,
-  fileLabel: string
+  fileLabel: string,
+  lang: Lang = DEFAULT_LANG
 ): string {
-  if (kind === "csv") return buildCsvScanReport(raw, fileLabel);
+  if (kind === "csv") return buildCsvScanReport(raw, fileLabel, lang);
   return buildTextScanReport(kind, raw, fileLabel);
 }

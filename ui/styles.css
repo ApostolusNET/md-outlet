@@ -72,7 +72,7 @@ body.aside-rail.show-editor:not(.doc-data) main {
 body:not(.show-editor) .editor { display: none; }
 body.doc-data aside { display: none !important; }
 body.doc-data #btnPdf { display: none !important; }
-/* aside が消えると 2 列グリッドの左カラムにプレビューが寄るため、data文書は全幅にする */
+/* When aside is hidden, avoid preview sitting in the left grid column — full width for data docs. */
 body.doc-data:not(.show-editor) main {
   grid-template-columns: 1fr;
 }
@@ -910,6 +910,38 @@ button:disabled {
   color: var(--muted);
   line-height: 1.35;
 }
+.lang-menu > summary {
+  min-width: 7.25rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lang-menu .menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.lang-flag {
+  display: inline-block;
+  width: 1.15rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  vertical-align: -0.05em;
+}
+/* Japan — white field, red disc (SVG data URI; reliable on Windows) */
+.lang-flag[data-flag="ja"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Crect width='3' height='2' fill='%23fff'/%3E%3Ccircle cx='1.5' cy='1' r='0.6' fill='%23bc002d'/%3E%3C/svg%3E");
+}
+/* United States — simplified 13-stripe + canton (readable at small size) */
+.lang-flag[data-flag="en"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 19 10'%3E%3Crect width='19' height='10' fill='%23fff'/%3E%3Cpath fill='%23b22234' d='M0 0h19v.77H0zm0 1.54h19v.77H0zm0 1.54h19v.77H0zm0 1.54h19v.77H0zm0 1.54h19v.77H0zm0 1.54h19v.77H0zm0 1.54h19V10H0z'/%3E%3Crect width='7.6' height='5.38' fill='%233c3b6e'/%3E%3C/svg%3E");
+}
 .tab-bar {
   display: flex;
   align-items: stretch;
@@ -940,7 +972,7 @@ button:disabled {
 .doc-tab {
   display: inline-flex;
   align-items: stretch;
-  width: 21rem; /* 表示幅（旧上限 14rem の 1.5 倍） */
+  width: 21rem; /* display width (1.5× former 14rem cap) */
   border: 1px solid #c5ccd4;
   border-bottom: none;
   border-radius: 6px 6px 0 0;

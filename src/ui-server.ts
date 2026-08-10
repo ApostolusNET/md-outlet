@@ -19,6 +19,13 @@ import type { Profile } from "./types.js";
 import { resolveUiSavePath } from "./ui-save-path.js";
 import { listLibraryDocs } from "./library-docs.js";
 import {
+  DEFAULT_LANG,
+  LOCALES_DIR,
+  normalizeLang,
+  t,
+  type Lang,
+} from "./i18n.js";
+import {
   assertMarkdownSize,
   assetRootFromMarkdownPath,
   guessAssetMime,
@@ -58,7 +65,7 @@ import {
   updateActiveTab,
   type UiTabState,
 } from "./ui-tabs.js";
-import { UI_MSG } from "./ui-messages.js";
+import { createUiMsg, type UiMsgBag } from "./ui-messages.js";
 import { readDocNote, writeDocNote } from "./doc-notes.js";
 
 const UI_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "ui");
@@ -140,8 +147,20 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
   /** Last PDF written by Export — served at GET /api/pdf */
   let lastPdfPath: string | null = null;
   const browseRoots = listBrowseRoots(PKG_ROOT);
+  /** Last language chosen by the open UI (header X-MD-Outlet-Lang). Default ja. */
+  let uiLang: Lang = DEFAULT_LANG;
 
   const activePath = (): string | null => activeTab(tabState)?.path ?? null;
+
+  const msgFor = (lang: Lang = uiLang): UiMsgBag => createUiMsg(lang);
+
+  const adoptLangFromReq = (req: IncomingMessage): Lang => {
+    const raw = req.headers["x-md-outlet-lang"];
+    if (raw != null && String(raw).trim()) {
+      uiLang = normalizeLang(raw);
+    }
+    return uiLang;
+  };
 
   /**
    * Open a path into tabs.
@@ -150,16 +169,17 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
    */
   const openDocPath = (
     absPath: string,
-    options: { replaceWhenFull: boolean }
+    options: { replaceWhenFull: boolean; msg?: UiMsgBag }
   ):
     | { ok: true; tabState: UiTabState; kind: string; text: string }
     | { ok: false; status: number; error: string } => {
+    const msg = options.msg ?? msgFor();
     if (!existsSync(absPath)) {
       removeRecent(absPath);
       return {
         ok: false,
         status: 404,
-        error: UI_MSG.fileNotFound(absPath),
+        error: msg.fileNotFound(absPath),
       };
     }
     const kind = detectDocKind(absPath);
@@ -167,12 +187,13 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
       return {
         ok: false,
         status: 400,
-        error: UI_MSG.unsupportedFile(absPath),
+        error: msg.unsupportedFile(absPath),
       };
     }
     const text = readFileSync(absPath, "utf8");
     const opened = openInTabs(tabState, absPath, text, {
       replaceWhenFull: options.replaceWhenFull,
+      msg,
     });
     if (!opened.ok) {
       return {
@@ -239,7 +260,8 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
       bundledSource: isBundledProfile(baseProfile.__sourcePath),
       builtins: listBuiltInProfiles(),
       themes: listBuiltInThemes(),
-      library: listLibraryDocs(),
+      locale: uiLang,
+      library: listLibraryDocs(uiLang),
       profile: profileToObject(baseProfile),
       /** Present for ~20s so the open page can toast without a new browser tab. */
       uiFlash:
@@ -285,6 +307,8 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
     try {
       const url = new URL(req.url ?? "/", `http://${opts.host ?? "127.0.0.1"}`);
       const path = url.pathname;
+      const reqLang = adoptLangFromReq(req);
+      const msg = msgFor(reqLang);
 
       // Tab refresh reconnects quickly — cancel a pending auto-exit.
       if (path !== "/api/shutdown") {
@@ -295,6 +319,27 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
         const html = readFileSync(resolve(UI_DIR, "index.html"), "utf8");
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         res.end(html);
+        return;
+      }
+
+      // Locale catalogs (shared with the browser UI).
+      if (req.method === "GET" && path.startsWith("/locales/")) {
+        const name = path.slice("/locales/".length);
+        if (!/^(ja|en)\.json$/.test(name)) {
+          res.writeHead(404).end("Not found");
+          return;
+        }
+        const abs = resolve(LOCALES_DIR, name);
+        const rootSep = LOCALES_DIR.endsWith(sep) ? LOCALES_DIR : LOCALES_DIR + sep;
+        if (!abs.startsWith(rootSep) || !existsSync(abs)) {
+          res.writeHead(404).end("Not found");
+          return;
+        }
+        res.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+        });
+        res.end(readFileSync(abs));
         return;
       }
 
@@ -400,7 +445,8 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
               text,
               mdAbs
                 ? basename(mdAbs)
-                : fallbackDataDocName(kind as DataDocKind)
+                : fallbackDataDocName(kind as DataDocKind),
+              reqLang
             );
             res.writeHead(200, {
               "Content-Type": "text/html; charset=utf-8",
@@ -427,11 +473,17 @@ export async function startUiServer(opts: UiServerOptions): Promise<void> {
         });
         // Screen chrome only (not used for PDF): readable measure + side/bottom padding.
         // <base> helps any remaining root-relative URLs inside iframe srcdoc.
+        const pageBreakCss = JSON.stringify(
+          t(reqLang, "preview.pageBreakLabel")
+        );
         const withChrome = html.replace(
           "</head>",
           `<base href="${apiOrigin}/" />
 <style data-md-outlet="preview-chrome">
-html { background: #fff; }
+html {
+  --md-outlet-page-break-label: ${pageBreakCss};
+  background: #fff;
+}
 body {
   max-width: 46rem;
   margin: 0 auto;
@@ -499,7 +551,7 @@ img { max-width: 100%; height: auto; }
           const kind = detectDocKind(mdAbs);
           if (isDataDocKind(kind)) {
             json(res, 400, {
-              error: UI_MSG.saveViewOnly(kind.toUpperCase()),
+              error: msg.saveViewOnly(kind.toUpperCase()),
             });
             return;
           }
@@ -508,7 +560,7 @@ img { max-width: 100%; height: auto; }
         if (!requested) {
           if (!mdAbs) {
             json(res, 400, {
-              error: UI_MSG.noSaveTarget,
+              error: msg.noSaveTarget,
             });
             return;
           }
@@ -621,7 +673,7 @@ img { max-width: 100%; height: auto; }
         const next = isAbsolute(requested)
           ? resolve(requested)
           : resolve(process.cwd(), requested);
-        const result = openDocPath(next, { replaceWhenFull: false });
+        const result = openDocPath(next, { replaceWhenFull: false, msg });
         if (!result.ok) {
           console.log(`Tab open failed (${result.status}): ${result.error}`);
           if (result.status === 409) {
@@ -640,7 +692,7 @@ img { max-width: 100%; height: auto; }
         console.log(`${kindLabel} opened (tab): ${next}`);
         setUiFlash(
           "ok",
-          `${kindLabel} を開きました: ${basename(next)}`
+          t(reqLang, "toast.opened", { path: basename(next) })
         );
         json(res, 200, {
           ...legacyDocFields(tabState),
@@ -686,7 +738,7 @@ img { max-width: 100%; height: auto; }
         if (typeof raw.markdown === "string" && activeTab(tabState)) {
           tabState = setActiveText(tabState, raw.markdown);
         }
-        const next = switchTab(tabState, id);
+        const next = switchTab(tabState, id, msg);
         if ("error" in next) {
           json(res, 404, { error: next.error });
           return;
@@ -708,7 +760,7 @@ img { max-width: 100%; height: auto; }
           json(res, 400, { error: "Missing tab id" });
           return;
         }
-        const next = closeTab(tabState, id);
+        const next = closeTab(tabState, id, msg);
         if ("error" in next) {
           json(res, 404, { error: next.error });
           return;
@@ -822,7 +874,7 @@ img { max-width: 100%; height: auto; }
           ? resolve(requested)
           : resolve(process.cwd(), requested);
         // Legacy open-md: replace active when full so existing UI/tests keep working.
-        const result = openDocPath(next, { replaceWhenFull: true });
+        const result = openDocPath(next, { replaceWhenFull: true, msg });
         if (!result.ok) {
           json(res, result.status, {
             error: result.error,
@@ -923,6 +975,7 @@ img { max-width: 100%; height: auto; }
         writeFileSync(out, raw.markdown, "utf8");
         const opened = openInTabs(tabState, out, raw.markdown, {
           replaceWhenFull: false,
+          msg,
         });
         if (!opened.ok) {
           json(res, opened.code === "full" ? 409 : 400, {
@@ -968,7 +1021,7 @@ img { max-width: 100%; height: auto; }
           json(res, 404, { error: resolved.error, recent: listRecent() });
           return;
         }
-        const result = openDocPath(resolved.path, { replaceWhenFull: false });
+        const result = openDocPath(resolved.path, { replaceWhenFull: false, msg });
         if (!result.ok) {
           json(res, result.status, {
             error: result.error,
@@ -1021,6 +1074,7 @@ img { max-width: 100%; height: auto; }
         writeFileSync(next, markdown, "utf8");
         const opened = openInTabs(tabState, next, markdown, {
           replaceWhenFull: false,
+          msg,
         });
         if (!opened.ok) {
           json(res, opened.code === "full" ? 409 : 400, {
@@ -1048,7 +1102,7 @@ img { max-width: 100%; height: auto; }
           const kind = detectDocKind(mdAbs);
           if (isDataDocKind(kind)) {
             json(res, 400, {
-              error: UI_MSG.pdfViewOnly(kind.toUpperCase()),
+              error: msg.pdfViewOnly(kind.toUpperCase()),
             });
             return;
           }
@@ -1137,7 +1191,7 @@ img { max-width: 100%; height: auto; }
         }
         const abs = resolve(process.cwd(), target);
         if (!existsSync(abs)) {
-          json(res, 404, { error: UI_MSG.fileNotFound(abs) });
+          json(res, 404, { error: msg.fileNotFound(abs) });
           return;
         }
         openExternal(abs);

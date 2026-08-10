@@ -2,6 +2,7 @@
  * Keyboard shortcuts (Ctrl+Alt+*) and Markdown find bar.
  */
 import { $, setStatus } from "./dom.js";
+import { apiFetch, t } from "./i18n.js";
 
 let api = {};
 export function bindShortcuts(next) {
@@ -68,14 +69,14 @@ export function updateMdFindCount() {
     return;
   }
   const total = countMdFindMatches($("mdEditor").value, q);
-  el.textContent = total ? total + " 件" : "0 件";
+  el.textContent = total ? t("find.count", { n: total }) : t("find.countZero");
 }
 
 export function findInMdEditor(dir) {
   const ta = $("mdEditor");
   const q = $("mdFindInput").value;
   if (!q) {
-    setStatus("検索語を入力してください", "err");
+    setStatus(t("toast.findNeed"), "err");
     $("mdFindInput").focus();
     return;
   }
@@ -94,7 +95,7 @@ export function findInMdEditor(dir) {
   }
   updateMdFindCount();
   if (idx < 0) {
-    setStatus("見つかりません: " + q, "err");
+    setStatus(t("toast.findNoneQ", { q }), "err");
     return;
   }
   ta.focus();
@@ -108,7 +109,7 @@ export function findInMdEditor(dir) {
   } catch (_) {
     /* ignore */
   }
-  setStatus("検索: " + q, "ok");
+  setStatus(t("toast.findOk", { q }), "ok");
 }
 
 export function onAppKeydown(e) {
@@ -129,13 +130,13 @@ export function onAppKeydown(e) {
     if (!$("dropConflictModal").hidden) {
       e.preventDefault();
       e.stopPropagation();
-      api.cancelPendingDrop("ドロップをキャンセルしました");
+      api.cancelPendingDrop(t("toast.dropCancel"));
       return;
     }
     if (!$("dropOpenModal").hidden) {
       e.preventDefault();
       e.stopPropagation();
-      api.cancelPendingDrop("ドロップをキャンセルしました");
+      api.cancelPendingDrop(t("toast.dropCancel"));
       return;
     }
     if (!$("openMdModal").hidden) {
@@ -185,7 +186,7 @@ export function onAppKeydown(e) {
       return;
     }
     if (!api.getState()?.mdPath && !api.getState()?.activeTabId) {
-      setStatus("検索するファイルがありません", "err");
+      setStatus(t("toast.findNoFile"), "err");
       return;
     }
     openMdFindBar();
@@ -197,7 +198,7 @@ export function onAppKeydown(e) {
     api.closeHeaderMenus();
     if (api.isDataDoc()) {
       setStatus(
-        api.dataDocLabel() + " の保存は未対応です（閲覧のみ）",
+        t("toast.saveViewOnlyShort", { kind: api.dataDocLabel() }),
         "err"
       );
       return;
@@ -237,7 +238,7 @@ export function onAppKeydown(e) {
     if (api.getState()?.activeTabId) {
       api.runCloseTab(api.getState().activeTabId);
     } else {
-      setStatus("閉じる文書タブがありません", "ok");
+      setStatus(t("toast.noTabToClose"), "ok");
     }
     return;
   }

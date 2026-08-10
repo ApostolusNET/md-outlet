@@ -34,7 +34,8 @@ $copyDirs = @(
   "themes",
   "dicts",
   "ui",
-  "docs"
+  "docs",
+  "locales"
 )
 foreach ($d in $copyDirs) {
   $src = Join-Path $Root $d
@@ -75,6 +76,7 @@ $copyFiles = @(
   "uninstall-sendto.bat",
   "SPEC.md",
   "README.md",
+  "README.ja.md",
   "LICENSE",
   "package.json",
   "package-lock.json"

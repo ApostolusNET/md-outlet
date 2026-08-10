@@ -2,6 +2,7 @@
  * Paper profile form (margins / theme / YAML save / template switch).
  */
 import { $, setStatus } from "./dom.js";
+import { apiFetch, t, templateLabel, themeLabel } from "./i18n.js";
 
 let api = {};
 export function bindProfileForm(next) {
@@ -14,12 +15,16 @@ const MARGIN_PRESETS = {
   wide: { top: "28mm", right: "24mm", bottom: "28mm", left: "24mm" },
 };
 
-const TEMPLATE_LABELS = {
-  "simple-preview": "気軽な閲覧（既定）",
-  default: "一般文書",
-  "ops-manual": "マニュアル（章ごと改ページ：#／なければ##）",
-};
-export { TEMPLATE_LABELS };
+/** @deprecated use templateLabel(id) — Proxy keeps TEMPLATE_LABELS[id] working */
+export const TEMPLATE_LABELS = new Proxy(
+  {},
+  {
+    get(_t, prop) {
+      if (typeof prop !== "string") return undefined;
+      return templateLabel(prop);
+    },
+  }
+);
 
 export function currentTheme() {
   const custom = $("themeCustom").value.trim();
@@ -106,14 +111,14 @@ export function fillThemeOptions(themes, current) {
   sel.innerHTML = "";
   const list = Array.isArray(themes) && themes.length ? themes : ["default"];
   const themeLabels = {
-    default: "標準",
-    compact: "コンパクト",
-    folio: "フォリオ（装飾多め）",
+    default: themeLabel("default"),
+    compact: themeLabel("compact"),
+    folio: themeLabel("folio"),
   };
-  for (const t of list) {
+  for (const name of list) {
     const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = themeLabels[t] || t;
+    opt.value = name;
+    opt.textContent = themeLabels[name] || name;
     sel.appendChild(opt);
   }
   if (list.includes(current)) {
@@ -156,15 +161,17 @@ export function updateSettingsHints() {
   if (pageHint) {
     const format = $("format").value || "A4";
     const orient =
-      $("orientation").value === "landscape" ? "横" : "縦";
+      $("orientation").value === "landscape"
+        ? t("hint.orient.landscape")
+        : t("hint.orient.portrait");
     const preset = $("marginPreset").value;
     const marginLabel =
       preset === "narrow"
-        ? "余白狭"
+        ? t("hint.margin.narrow")
         : preset === "wide"
-          ? "余白広"
+          ? t("hint.margin.wide")
           : preset === "custom"
-            ? "余白指定"
+            ? t("hint.margin.custom")
             : "";
     pageHint.textContent = marginLabel
       ? format + "：" + orient + " · " + marginLabel
@@ -177,7 +184,7 @@ export function updateSettingsHints() {
       "default";
     const themeShort = api.basenamePath(theme) || theme;
     lookHint.textContent = $("breakH1").checked
-      ? themeShort + " · 章改ページ"
+      ? themeShort + " · " + t("hint.breakChapter")
       : themeShort;
   }
 }
@@ -186,10 +193,10 @@ export function fillTemplateOptions(builtins, currentRef) {
   const sel = $("templateSelect");
   sel.innerHTML = "";
   const list = Array.isArray(builtins) ? builtins : [];
-  for (const t of list) {
+  for (const name of list) {
     const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = TEMPLATE_LABELS[t] || t;
+    opt.value = name;
+    opt.textContent = TEMPLATE_LABELS[name] || name;
     sel.appendChild(opt);
   }
   if (list.includes(currentRef)) {
@@ -197,7 +204,7 @@ export function fillTemplateOptions(builtins, currentRef) {
   } else if (list.length) {
     const opt = document.createElement("option");
     opt.value = currentRef;
-    opt.textContent = (TEMPLATE_LABELS[currentRef] || currentRef) + "（ファイル）";
+    opt.textContent = (TEMPLATE_LABELS[currentRef] || currentRef) + t("template.fileSuffix");
     sel.appendChild(opt);
     sel.value = currentRef;
   }
@@ -205,34 +212,34 @@ export function fillTemplateOptions(builtins, currentRef) {
 
 export async function saveYaml() {
   const savePath = $("savePath").value.trim();
-  const res = await fetch("/api/save", {
+  const res = await apiFetch("/api/save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile: readForm(), savePath }),
   });
   const data = await res.json();
   if (!res.ok) {
-    setStatus(data.error || "Yaml設定の保存に失敗しました", "err");
+    setStatus(data.error || t("toast.yamlSaveFail"), "err");
     return;
   }
-  dirtyProfile = false;
-  updateHints();
-  setStatus("Yaml設定を保存しました: " + data.path, "ok");
+  if (typeof api.setDirtyProfile === "function") api.setDirtyProfile(false);
+  if (typeof api.updateHints === "function") api.updateHints();
+  setStatus(t("toast.yamlSaved", { path: data.path }), "ok");
 }
 
 export async function switchTemplate(name) {
-  const res = await fetch("/api/use-template", {
+  const res = await apiFetch("/api/use-template", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile: name }),
   });
   const data = await res.json();
   if (!res.ok) {
-    setStatus(data.error || "ひな形の切り替えに失敗しました", "err");
+    setStatus(data.error || t("toast.templateFail"), "err");
     return;
   }
   api.applyStatePayload(data);
   const label = TEMPLATE_LABELS[data.profileRef] || data.profileRef;
-  setStatus("ひな形を切り替えました: " + label, "ok");
+  setStatus(t("toast.templateSwitched", { label }), "ok");
   await api.refreshPreview();
 }

@@ -1,6 +1,6 @@
 /* md-outlet folio theme
- * やや凝った紙面向け。見出しは明朝寄り、本文はゴシック。
- * 表罫線・コード背景・改ページ・keep-together は default と同じ保証。
+ * Slightly more polished print look. Headings lean serif/Mincho; body is sans/Gothic.
+ * Same structural guarantees as default (tables, code, page-break, keep-together).
  */
 
 :root {
@@ -420,7 +420,7 @@ img {
 
 @media screen {
   body {
-    /* プレビューだけ薄い紙面感（PDF の余白はプロファイル側） */
+    /* Light paper feel in preview only (PDF margins come from the profile). */
     background:
       radial-gradient(1200px 400px at 10% -10%, #e8f4f3 0%, transparent 55%),
       #fff;
@@ -438,7 +438,7 @@ img {
 
   .page-break::after,
   .md-outlet-page-break::after {
-    content: "改ページ";
+    content: var(--md-outlet-page-break-label, "改ページ");
     position: absolute;
     top: -0.7em;
     left: 50%;
@@ -483,7 +483,7 @@ img {
     page-break-inside: avoid;
   }
   thead th {
-    /* 印刷でもヘッダ帯が分かるよう（printBackground 前提） */
+    /* Keep header band visible when printing (assumes printBackground). */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

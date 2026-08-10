@@ -8,7 +8,11 @@ import {
   detectDocKind,
   type DocKind,
 } from "./file-kind.js";
-import { MAX_UI_TABS, UI_MSG } from "./ui-messages.js";
+import {
+  MAX_UI_TABS,
+  UI_MSG,
+  type UiMsgBag,
+} from "./ui-messages.js";
 
 export { MAX_UI_TABS };
 
@@ -112,8 +116,9 @@ export function openInTabs(
   state: UiTabState,
   path: string,
   text: string,
-  options: { replaceWhenFull?: boolean } = {}
+  options: { replaceWhenFull?: boolean; msg?: UiMsgBag } = {}
 ): TabOpenResult {
+  const msg = options.msg ?? UI_MSG;
   const existing = findTabByPath(state, path);
   if (existing) {
     return {
@@ -128,7 +133,7 @@ export function openInTabs(
   if (!tab) {
     return {
       ok: false,
-      error: UI_MSG.unsupportedFile(path),
+      error: msg.unsupportedFile(path),
       code: "invalid",
     };
   }
@@ -148,7 +153,7 @@ export function openInTabs(
   if (!options.replaceWhenFull) {
     return {
       ok: false,
-      error: UI_MSG.tabFull,
+      error: msg.tabFull,
       code: "full",
     };
   }
@@ -179,20 +184,22 @@ export function openInTabs(
 
 export function switchTab(
   state: UiTabState,
-  id: string
+  id: string,
+  msg: UiMsgBag = UI_MSG
 ): UiTabState | { error: string } {
   if (!state.tabs.some((t) => t.id === id)) {
-    return { error: UI_MSG.tabNotFound(id) };
+    return { error: msg.tabNotFound(id) };
   }
   return { tabs: state.tabs, activeId: id };
 }
 
 export function closeTab(
   state: UiTabState,
-  id: string
+  id: string,
+  msg: UiMsgBag = UI_MSG
 ): UiTabState | { error: string } {
   const idx = state.tabs.findIndex((t) => t.id === id);
-  if (idx < 0) return { error: UI_MSG.tabNotFound(id) };
+  if (idx < 0) return { error: msg.tabNotFound(id) };
   const tabs = state.tabs.filter((t) => t.id !== id);
   let activeId = state.activeId;
   if (activeId === id) {

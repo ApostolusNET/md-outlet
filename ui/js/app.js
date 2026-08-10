@@ -1,5 +1,12 @@
 import { $, setStatus } from "./dom.js";
 import {
+  apiFetch,
+  getLang,
+  initI18n,
+  setLang,
+  t,
+} from "./i18n.js";
+import {
   bindNotes,
   applyDocNoteFromPayload,
   flushDocNoteIfNeeded,
@@ -75,7 +82,7 @@ let titleFlashTimer = null;
 const defaultDocTitle = document.title || "md-outlet ui";
 let lastPdfPath = null;
 let defaultPdfPath = "";
-/** Previous Markdown paths for preview「戻る」(link navigation). */
+/** Previous Markdown paths for preview Back (link navigation). */
 let mdNavStack = [];
 let dirtyConfirmResolver = null;
 
@@ -117,25 +124,25 @@ function openPdfInBrowser() {
 function updateHints() {
   const mdHint = $("mdHint");
   if (!state?.mdPath) {
-    mdHint.textContent = "未選択";
+    mdHint.textContent = t("hint.md.none");
     mdHint.classList.remove("dirty", "saved");
     mdHint.classList.add("idle");
-    $("previewHint").textContent = "—";
+    $("previewHint").textContent = t("preview.idle");
     return;
   }
   mdHint.classList.remove("idle");
   if (isDataDoc()) {
-    mdHint.textContent = dataDocLabel() + "閲覧";
+    mdHint.textContent = dataDocLabel() + t("hint.md.viewOnly");
     mdHint.classList.remove("dirty");
     mdHint.classList.add("saved");
-    $("previewHint").textContent = "スキャン表示";
+    $("previewHint").textContent = t("hint.preview.scan");
     return;
   }
-  mdHint.textContent = dirtyMd ? "未保存" : "保存済み";
+  mdHint.textContent = dirtyMd ? t("preview.unsaved") : t("hint.md.saved");
   mdHint.classList.toggle("dirty", dirtyMd);
   mdHint.classList.toggle("saved", !dirtyMd);
   $("previewHint").textContent =
-    dirtyProfile || dirtyMd ? "更新待ち" : "最新";
+    dirtyProfile || dirtyMd ? t("hint.preview.pending") : t("preview.latest");
 }
 
 const DATA_DOC_KINDS = ["xml", "json", "yaml", "txt", "log", "csv"];
@@ -175,7 +182,7 @@ function dataDocLabel() {
   if (k === "txt") return "TXT";
   if (k === "log") return "LOG";
   if (k === "csv") return "CSV";
-  return "データ";
+  return t("label.data");
 }
 
 function updateDocModeUi() {
@@ -187,13 +194,13 @@ function updateDocModeUi() {
   $("mdEditor").readOnly = data;
   $("btnSaveMd").disabled = data;
   $("btnSaveMd").title = data
-    ? label + " の保存は未対応（閲覧のみ）"
+    ? t("toast.saveViewOnlyTitle", { kind: label })
     : "";
   $("btnToggleEditor").textContent = data
-    ? "生テキスト (Ctrl+Alt+E)"
-    : "編集 (Ctrl+Alt+E)";
+    ? t("editor.rawText")
+    : t("editor.editToggle");
   if (data) {
-    $("btnNewMd").title = "新規作成は Markdown 用です";
+    $("btnNewMd").title = t("editor.newMdOnly");
   } else {
     $("btnNewMd").title = "";
   }
@@ -224,10 +231,10 @@ function updateNavBackButton() {
   const hasFile = Boolean(state?.mdPath);
   btn.hidden = !hasFile;
   if (!hasFile) return;
-  btn.textContent = mdNavStack.length ? "← 戻る" : "← 履歴へ";
+  btn.textContent = mdNavStack.length ? t("nav.backFile") : t("nav.backHistory");
   btn.title = mdNavStack.length
-    ? "リンク前のファイルへ戻る (Esc)"
-    : "履歴画面へ戻る (Esc)";
+    ? t("nav.backFileTitle")
+    : t("nav.backHistoryTitle");
 }
 
 function clearMdNavStack() {
@@ -254,13 +261,15 @@ function askDirtyMd(actionLabel) {
     dirtyConfirmResolver = resolve;
     const name =
       basenamePath(state?.mdPath || "") ||
-      (state?.activeTabId ? "このタブ" : "このファイル");
-    $("dirtyModalMessage").textContent =
-      "「" +
-      name +
-      "」に保存していない変更があります。" +
-      (actionLabel || "この操作") +
-      "の前に保存しますか？（保存しないを選ぶと変更は捨てられます）";
+      (state?.activeTabId ? t("label.thisTab") : t("label.thisFile"));
+    const action =
+      actionLabel && String(actionLabel).startsWith("action.")
+        ? t(actionLabel)
+        : actionLabel || t("action.this");
+    $("dirtyModalMessage").textContent = t("modal.dirtyDynamic", {
+      name,
+      action,
+    });
     $("dirtyModal").hidden = false;
     $("btnDirtySave").focus();
   });
@@ -324,7 +333,7 @@ function renderRecentList(recent) {
     const empty = document.createElement("div");
     empty.className = "recent-empty";
     empty.textContent =
-      "まだ履歴がありません。開く／新規作成するか、ガイドからサンプルを開けます。";
+      t("welcome.recentEmptyLong");
     box.appendChild(empty);
     return;
   }
@@ -354,7 +363,7 @@ function renderRecentList(recent) {
     const pinBtn = document.createElement("button");
     pinBtn.type = "button";
     pinBtn.textContent = item.pinned ? "★" : "☆";
-    pinBtn.title = item.pinned ? "ピン留めを外す" : "ピン留め";
+    pinBtn.title = item.pinned ? t("recent.unpin") : t("recent.pin");
     pinBtn.className = item.pinned ? "is-on" : "";
     pinBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -364,7 +373,7 @@ function renderRecentList(recent) {
     const delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.textContent = "×";
-    delBtn.title = "履歴から削除";
+    delBtn.title = t("recent.remove");
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       removeRecentEntry(item.path);
@@ -380,19 +389,19 @@ function renderRecentList(recent) {
 
 async function removeRecentEntry(path) {
   try {
-    const res = await fetch("/api/recent/remove", {
+    const res = await apiFetch("/api/recent/remove", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "履歴を削除できませんでした", "err");
+      setStatus(data.error || t("toast.recentRemoveFail"), "err");
       return;
     }
     if (state) state.recent = data.recent || [];
     renderRecentList(state?.recent || []);
-    setStatus("履歴から削除しました", "ok");
+    setStatus(t("toast.recentRemoved"), "ok");
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
   }
@@ -400,19 +409,19 @@ async function removeRecentEntry(path) {
 
 async function toggleRecentPin(path, pinned) {
   try {
-    const res = await fetch("/api/recent/pin", {
+    const res = await apiFetch("/api/recent/pin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, pinned: Boolean(pinned) }),
     });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "ピン留めを変更できませんでした", "err");
+      setStatus(data.error || t("toast.pinFail"), "err");
       return;
     }
     if (state) state.recent = data.recent || [];
     renderRecentList(state?.recent || []);
-    setStatus(pinned ? "ピン留めしました" : "ピン留めを外しました", "ok");
+    setStatus(pinned ? t("toast.pinned") : t("toast.unpinned"), "ok");
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
   }
@@ -465,7 +474,7 @@ function insertPageBreak() {
     (needNlBefore ? "\n" : "") +
     '<div class="page-break"></div>\n';
   insertAtCursor(ta, block);
-  setStatus("Inserted page-break", "ok");
+  setStatus(t("toast.pageBreak"), "ok");
 }
 
 function insertKeepTogether() {
@@ -484,14 +493,14 @@ function insertKeepTogether() {
       selected.replace(/^\n+|\n+$/g, "") +
       "\n\n</div>\n";
     insertAtCursor(ta, wrapped);
-    setStatus("Wrapped selection in keep-together", "ok");
+    setStatus(t("toast.keepWrapped"), "ok");
   } else {
     const open = prefix + '<div class="keep-together">\n\n';
     const close = "\n\n</div>\n";
     const placeholder = "<!-- content that should stay on one page -->";
     const text = open + placeholder + close;
     insertAtCursor(ta, text, open.length, open.length + placeholder.length);
-    setStatus("Inserted keep-together template", "ok");
+    setStatus(t("toast.keepInserted"), "ok");
   }
 }
 
@@ -525,7 +534,7 @@ function fillHelpMenu(library) {
     const empty = document.createElement("button");
     empty.type = "button";
     empty.disabled = true;
-    empty.textContent = "（なし）";
+    empty.textContent = t("help.empty");
     panel.appendChild(empty);
     return;
   }
@@ -583,8 +592,8 @@ function applyAsideRail(rail) {
   btn.setAttribute("aria-expanded", rail ? "false" : "true");
   btn.textContent = rail ? "›" : "‹";
   btn.title = rail
-    ? "設定パネルを開く (Ctrl+Alt+B)"
-    : "設定パネルをしまう (Ctrl+Alt+B)";
+    ? t("aside.openTitle")
+    : t("aside.closeTitle");
 }
 
 function loadAsideRailPref() {
@@ -609,8 +618,8 @@ function toggleAsideRail() {
   saveAsideRailPref(next);
   setStatus(
     next
-      ? "設定パネルをしまいました（Ctrl+Alt+B で開けます）"
-      : "設定パネルを開きました",
+      ? t("toast.asideCollapsed")
+      : t("toast.asideOpened"),
     "ok"
   );
 }
@@ -618,15 +627,15 @@ function toggleAsideRail() {
 applyAsideRail(loadAsideRailPref());
 
 async function loadState() {
-  const res = await fetch("/api/state");
+  const res = await apiFetch("/api/state");
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "状態の読み込みに失敗しました");
+  if (!res.ok) throw new Error(data.error || t("toast.stateLoadFail"));
   applyStatePayload(data);
   // Drop flashes that already existed when this page loaded (e.g. prior 409),
   // otherwise the 800ms handoff poll replays a red toast for no reason.
   noteUiFlashId(data);
   if (data.empty || !data.mdPath) {
-    setStatus("ファイルを選ぶか、最近の履歴から開いてください", "ok");
+    setStatus(t("toast.pickFile"), "ok");
   } else {
     const tmpl =
       $("appTitle").dataset.templateLabel ||
@@ -635,8 +644,8 @@ async function loadState() {
       "";
     setStatus(
       tmpl
-        ? "準備完了 — ひな形: " + tmpl
-        : "準備完了 — 左で用紙、右でプレビュー",
+        ? t("toast.readyTemplate", { name: tmpl })
+        : t("toast.readyDefault"),
       "ok"
     );
     try {
@@ -679,7 +688,7 @@ function closeMdModal() {
 }
 
 function openMdModal() {
-  const path = state?.mdPath || "(未設定)";
+  const path = state?.mdPath || t("label.unset");
   $("mdModalOverwritePath").textContent = path;
   $("mdModalStepSave").hidden = false;
   $("mdModalStepAs").hidden = true;
@@ -713,18 +722,18 @@ async function runSaveMd(outputPath, opts) {
   const btn = $("btnSaveMd");
   btn.disabled = true;
   const prevLabel = btn.textContent;
-  btn.textContent = "保存中…";
+  btn.textContent = t("busy.saving");
   try {
     const body = { markdown: $("mdEditor").value };
     if (outputPath) body.path = outputPath;
-    const res = await fetch("/api/save-md", {
+    const res = await apiFetch("/api/save-md", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "Markdown の保存に失敗しました", "err");
+      setStatus(data.error || t("toast.mdSaveFail"), "err");
       return false;
     }
     dirtyMd = false;
@@ -747,8 +756,8 @@ async function runSaveMd(outputPath, opts) {
     if (!options.quiet) {
       setStatus(
         data.switched
-          ? "別名で保存しました（編集中）: " + data.path
-          : "Markdown を保存しました: " + data.path,
+          ? t("toast.mdSavedAs", { path: data.path })
+          : t("toast.mdSavedPath", { path: data.path }),
         "ok"
       );
     }
@@ -807,19 +816,19 @@ async function runCloseMd() {
   closeHeaderMenus();
   if (!state?.mdPath) {
     updateWelcomePanel();
-    setStatus("すでにファイル未選択です", "ok");
+    setStatus(t("toast.alreadyEmpty"), "ok");
     return;
   }
-  if (!(await ensureMdClean("閉じる"))) return;
+  if (!(await ensureMdClean("action.close"))) return;
   const btn = $("btnCloseMd");
   btn.disabled = true;
   const prevLabel = btn.textContent;
-  btn.textContent = "閉じています…";
+  btn.textContent = t("busy.closing");
   try {
-    const res = await fetch("/api/close-md", { method: "POST" });
+    const res = await apiFetch("/api/close-md", { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || "閉じられませんでした", "err");
+      setStatus(data.error || t("toast.closeFail"), "err");
       return;
     }
     clearMdNavStack();
@@ -829,7 +838,7 @@ async function runCloseMd() {
     lastPdfPath = null;
     defaultPdfPath = "";
     hideExportBanner();
-    setStatus("閉じました — 最近のファイルから選べます", "ok");
+    setStatus(t("toast.closed"), "ok");
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
   } finally {
@@ -840,7 +849,7 @@ async function runCloseMd() {
 
 async function runNavBack() {
   if (!state?.mdPath) return;
-  if (!(await ensureMdClean("戻る"))) return;
+  if (!(await ensureMdClean("action.back"))) return;
   if (mdNavStack.length) {
     const prev = mdNavStack.pop();
     updateNavBackButton();
@@ -856,9 +865,9 @@ async function runOpenMd(requestedPath, opts) {
   const btn = $("btnOpenMd");
   btn.disabled = true;
   const prevLabel = btn.textContent;
-  btn.textContent = "開いています…";
+  btn.textContent = t("busy.opening");
   try {
-    const res = await fetch("/api/tabs/open", {
+    const res = await apiFetch("/api/tabs/open", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -875,7 +884,7 @@ async function runOpenMd(requestedPath, opts) {
       }
       mergeTabSnapshot(data);
       renderTabBar();
-      setStatus(data.error || "ファイルを開けませんでした", "err");
+      setStatus(data.error || t("toast.openFail"), "err");
       return;
     }
     if (options.nav === "replace") clearMdNavStack();
@@ -891,10 +900,11 @@ async function runOpenMd(requestedPath, opts) {
     const isData = DATA_DOC_KINDS.includes(kind);
     setStatus(
       isData
-        ? (kind || "").toUpperCase() +
-            " を開きました（スキャン表示）: " +
-            data.path
-        : "開きました: " + data.path,
+        ? t("toast.openedScan", {
+            kind: (kind || "").toUpperCase(),
+            path: data.path,
+          })
+        : t("toast.openedPath", { path: data.path }),
       "ok"
     );
     if (isData) {
@@ -923,11 +933,11 @@ function closeNewMdModal() {
   $("newMdModal").hidden = true;
   if (wasDropSave) {
     pendingDrop = null;
-    setStatus("ドロップをキャンセルしました", "ok");
+    setStatus(t("toast.dropCancel"), "ok");
   }
   newMdMode = "create";
   $("newMdModalTitle").textContent = "New Markdown";
-  $("btnNewMdConfirm").textContent = "作成";
+  $("btnNewMdConfirm").textContent = t("common.create");
 }
 
 function suggestNewMdPath() {
@@ -944,14 +954,14 @@ async function openNewMdModal(opts) {
     options.pathValue != null ? options.pathValue : suggestNewMdPath();
   $("newMdModalTitle").textContent =
     newMdMode === "drop-save"
-      ? "ドロップしたファイルを別名で保存"
+      ? t("modal.dropSaveAsTitle")
       : "New Markdown";
   $("newMdModalLead").textContent =
     newMdMode === "drop-save"
-      ? "保存先フォルダを選び、ファイル名を確認してください。確定するとドロップ内容を書き出して開きます。"
-      : "保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。";
+      ? t("modal.dropSaveAsLead")
+      : t("modal.newLead");
   $("btnNewMdConfirm").textContent =
-    newMdMode === "drop-save" ? "この名前で保存して開く" : "作成";
+    newMdMode === "drop-save" ? t("modal.dropSaveConfirm") : t("common.create");
   $("newMdPathInput").value = pathValue;
   $("newMdModal").hidden = false;
   try {
@@ -971,13 +981,13 @@ async function runNewMd(requestedPath, force, opts) {
   const options = opts || {};
   const fromDrop = Boolean(options.fromDrop) || newMdMode === "drop-save";
   if (!force && !options.skipDirtyConfirm) {
-    if (!(await ensureMdClean("新規作成"))) return;
+    if (!(await ensureMdClean("action.new"))) return;
   }
   closeNewMdModalKeepPending();
   const btn = $("btnNewMd");
   btn.disabled = true;
   const prevLabel = btn.textContent;
-  btn.textContent = fromDrop ? "保存中…" : "作成中…";
+  btn.textContent = fromDrop ? t("busy.saving") : t("busy.creating");
   try {
     const body = {
       path: requestedPath,
@@ -985,12 +995,12 @@ async function runNewMd(requestedPath, force, opts) {
     };
     if (fromDrop) {
       if (!pendingDrop || typeof pendingDrop.markdown !== "string") {
-        setStatus("ドロップ内容がありません", "err");
+        setStatus(t("toast.dropEmpty"), "err");
         return;
       }
       body.markdown = pendingDrop.markdown;
     }
-    const res = await fetch("/api/new-md", {
+    const res = await apiFetch("/api/new-md", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -999,7 +1009,7 @@ async function runNewMd(requestedPath, force, opts) {
     if (res.status === 409 && data.exists) {
       if (
         confirm(
-          "同じ名前のファイルがあります。上書きしますか？\n" + data.path
+          t("toast.overwriteConfirm", { path: data.path })
         )
       ) {
         await runNewMd(requestedPath, true, {
@@ -1016,7 +1026,7 @@ async function runNewMd(requestedPath, force, opts) {
       return;
     }
     if (!res.ok) {
-      setStatus(data.error || "新規作成に失敗しました", "err");
+      setStatus(data.error || t("toast.newFail"), "err");
       return;
     }
     pendingDrop = null;
@@ -1026,8 +1036,8 @@ async function runNewMd(requestedPath, force, opts) {
     updateNavBackButton();
     setStatus(
       fromDrop
-        ? "ドロップ内容を保存して開きました: " + data.path
-        : "新規作成しました: " + data.path,
+        ? t("toast.dropSavedOpen", { path: data.path })
+        : t("toast.createdPath", { path: data.path }),
       "ok"
     );
     document.body.classList.add("show-editor");
@@ -1059,7 +1069,7 @@ function closePdfModal() {
 
 function openPdfModal() {
   const path = overwritePdfPath();
-  $("pdfModalOverwritePath").textContent = path || "(未設定)";
+  $("pdfModalOverwritePath").textContent = path || t("label.unset");
   $("pdfModalStepSave").hidden = false;
   $("pdfModalStepAs").hidden = true;
   $("pdfModal").hidden = false;
@@ -1086,17 +1096,17 @@ async function runExportPdf(outputPath) {
   const btn = $("btnPdf");
   btn.disabled = true;
   const prevLabel = btn.textContent;
-  btn.textContent = "出力中…";
-  setStatus("PDF を作成しています…");
+  btn.textContent = t("busy.exporting");
+  setStatus(t("toast.pdfWorking"));
   showExportBanner({
     kind: "busy",
-    title: "PDF を作成しています…",
+    title: t("toast.pdfWorking"),
     showOpen: false,
     showDismiss: false,
   });
   const viewer = window.open("about:blank", "_blank");
   try {
-    const res = await fetch("/api/export-pdf", {
+    const res = await apiFetch("/api/export-pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1108,10 +1118,10 @@ async function runExportPdf(outputPath) {
     const data = await res.json();
     if (!res.ok) {
       if (viewer) viewer.close();
-      setStatus(data.error || "PDF の作成に失敗しました", "err");
+      setStatus(data.error || t("toast.pdfFail"), "err");
       showExportBanner({
         kind: "err",
-        title: data.error || "PDF の作成に失敗しました",
+        title: data.error || t("toast.pdfFail"),
         showOpen: false,
         showDismiss: true,
       });
@@ -1120,9 +1130,9 @@ async function runExportPdf(outputPath) {
     lastPdfPath = data.path;
     defaultPdfPath = data.path;
     const fileName = String(data.path || "").split(/[/\\]/).pop() || "PDF";
-    setStatus("PDF を保存しました: " + data.path, "ok");
+    setStatus(t("toast.pdfSaved", { path: data.path }), "ok");
     showExportBanner({
-      title: "PDF を保存しました: " + fileName,
+      title: t("toast.pdfSavedBanner", { name: fileName }),
       path: data.path,
       showOpen: true,
       showDismiss: true,
@@ -1132,7 +1142,7 @@ async function runExportPdf(outputPath) {
       viewer.location.href = url;
     } else {
       setStatus(
-        "PDF を保存しました（バナーから開けます）: " + data.path,
+        t("toast.pdfSavedWithBanner", { path: data.path }),
         "ok"
       );
     }
@@ -1153,11 +1163,11 @@ async function runExportPdf(outputPath) {
 }
 
 async function reloadMd() {
-  if (!(await ensureMdClean("再読み込み"))) return;
-  const res = await fetch("/api/state");
+  if (!(await ensureMdClean("action.reload"))) return;
+  const res = await apiFetch("/api/state");
   const data = await res.json();
   if (!res.ok) {
-    setStatus(data.error || "再読み込みに失敗しました", "err");
+    setStatus(data.error || t("toast.reloadFail"), "err");
     return;
   }
   $("mdEditor").value = data.markdown || "";
@@ -1166,7 +1176,7 @@ async function reloadMd() {
   updateHints();
   renderTabBar();
   applyDocNoteFromPayload(data);
-  setStatus("ディスクから再読み込みしました", "ok");
+  setStatus(t("toast.reloaded"), "ok");
   await refreshPreview();
 }
 
@@ -1175,7 +1185,7 @@ function closeDropConflictModal() {
 }
 
 function openDropConflictModal(conflictPath) {
-  $("dropConflictPath").textContent = conflictPath || "(不明)";
+  $("dropConflictPath").textContent = conflictPath || t("label.unknown");
   $("dropConflictModal").hidden = false;
   $("btnDropConflictOverwrite").focus();
 }
@@ -1268,9 +1278,9 @@ async function openResolvedDropPath(path) {
 }
 
 function showDropPickModal(candidates) {
-  $("dropOpenTitle").textContent = "どのファイルを開きますか？";
+  $("dropOpenTitle").textContent = t("drop.pickTitle");
   $("dropOpenLead").textContent =
-    "同名の候補が複数あります。元の場所のパスを選んでください。";
+    t("drop.pickLead");
   $("dropOpenPath").hidden = true;
   const list = $("dropOpenList");
   list.hidden = false;
@@ -1301,11 +1311,11 @@ function showDropPickModal(candidates) {
 }
 
 function showDropNoPathModal() {
-  $("dropOpenTitle").textContent = "元の場所を特定できませんでした";
+  $("dropOpenTitle").textContent = t("drop.unresolvedTitle");
   $("dropOpenLead").textContent =
-    "ブラウザの制限でドロップ元のフルパスが取れません。参照で同じファイルを開くか、必要ならコピーして開けます。";
+    t("drop.unresolvedLead");
   $("dropOpenPath").hidden = false;
-  $("dropOpenPath").textContent = pendingDrop?.name || "(不明)";
+  $("dropOpenPath").textContent = pendingDrop?.name || t("label.unknown");
   $("dropOpenList").hidden = true;
   $("dropOpenList").textContent = "";
   $("btnDropOpenCopy").hidden = false;
@@ -1318,7 +1328,7 @@ async function resolveAndOpenDrop(file, pathHint) {
   const searchDirs = [];
   if (state?.mdPath) searchDirs.push(dirOfPath(state.mdPath));
   if (state?.workspaceRoot) searchDirs.push(state.workspaceRoot);
-  const res = await fetch("/api/resolve-drop", {
+  const res = await apiFetch("/api/resolve-drop", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1332,12 +1342,12 @@ async function resolveAndOpenDrop(file, pathHint) {
   });
   const data = await res.json();
   if (!res.ok) {
-    setStatus(data.error || "ドロップ先の解決に失敗しました", "err");
+    setStatus(data.error || t("toast.dropResolveFail"), "err");
     showDropNoPathModal();
     return;
   }
   if (data.path) {
-    setStatus("元の場所で開きます: " + data.path, "ok");
+    setStatus(t("toast.dropOpenPath", { path: data.path }), "ok");
     await openResolvedDropPath(data.path);
     return;
   }
@@ -1350,10 +1360,10 @@ async function resolveAndOpenDrop(file, pathHint) {
 
 async function importDroppedMarkdown(force) {
   if (!pendingDrop || typeof pendingDrop.markdown !== "string") {
-    setStatus("ドロップ内容がありません", "err");
+    setStatus(t("toast.dropEmpty"), "err");
     return false;
   }
-  const res = await fetch("/api/import-md", {
+  const res = await apiFetch("/api/import-md", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1370,7 +1380,7 @@ async function importDroppedMarkdown(force) {
     return false;
   }
   if (!res.ok) {
-    setStatus(data.error || "ドロップしたファイルを開けませんでした", "err");
+    setStatus(data.error || t("toast.dropImportFail"), "err");
     pendingDrop = null;
     return false;
   }
@@ -1378,7 +1388,7 @@ async function importDroppedMarkdown(force) {
   clearMdNavStack();
   applyActiveMarkdown(data);
   updateNavBackButton();
-  setStatus("コピーして開きました: " + data.path, "ok");
+  setStatus(t("toast.dropImported", { path: data.path }), "ok");
   document.body.classList.add("show-editor");
   $("btnToggleEditor").classList.add("active");
   await refreshPreview();
@@ -1389,10 +1399,10 @@ async function handleMarkdownDrop(dt) {
   const files = dt && dt.files ? Array.from(dt.files) : [];
   const mdFiles = files.filter(isMarkdownDropFile);
   if (!mdFiles.length) {
-    setStatus("Markdown（.md）ファイルをドロップしてください", "err");
+    setStatus(t("toast.dropNeedMd"), "err");
     return;
   }
-  if (!(await ensureMdClean("ファイルを開く"))) return;
+  if (!(await ensureMdClean("action.openFile"))) return;
   closeOpenMdModal();
   closeMdModal();
   closePdfModal();
@@ -1411,10 +1421,7 @@ async function handleMarkdownDrop(dt) {
   await resolveAndOpenDrop(first, pathHint);
   if (mdFiles.length > 1 && state?.mdPath) {
     setStatus(
-      "最初のファイルを開きました（" +
-        mdFiles.length +
-        " 件中）: " +
-        state.mdPath,
+      t("toast.openedFirstOf", { n: mdFiles.length, path: state.mdPath }),
       "ok"
     );
   }
@@ -1428,7 +1435,7 @@ async function browseForDroppedFile() {
   if (name) {
     $("openMdPathInput").value = name;
     setStatus(
-      "「" + name + "」をフォルダ一覧から選ぶか、パスを入力してください",
+      t("toast.pickFromList", { name }),
       "ok"
     );
   }
@@ -1444,7 +1451,7 @@ function requestUiShutdown() {
     /* fall through */
   }
   try {
-    fetch("/api/shutdown", { method: "POST", keepalive: true });
+    apiFetch("/api/shutdown", { method: "POST", keepalive: true });
   } catch (_) {
     /* ignore */
   }
@@ -1543,6 +1550,10 @@ function wireUiModules() {
     applyStatePayload,
     refreshPreview,
     basenamePath,
+    updateHints,
+    setDirtyProfile: (v) => {
+      dirtyProfile = Boolean(v);
+    },
   });
 
   bindPreview({
@@ -1573,7 +1584,7 @@ $("btnSave").addEventListener("click", () => saveYaml());
 $("btnSaveMd").addEventListener("click", () => {
   closeHeaderMenus();
   if (isDataDoc()) {
-    setStatus(dataDocLabel() + " の保存は未対応です（閲覧のみ）", "err");
+    setStatus(t("toast.saveViewOnlyShort", { kind: dataDocLabel() }), "err");
     return;
   }
   openMdModal();
@@ -1586,7 +1597,7 @@ $("btnNewMdCancel").addEventListener("click", () => closeNewMdModal());
 $("btnNewMdConfirm").addEventListener("click", () => {
   const path = $("newMdPathInput").value.trim();
   if (!path) {
-    setStatus("新しい Markdown のパスを入力してください", "err");
+    setStatus(t("toast.needNewPath"), "err");
     $("newMdPathInput").focus();
     return;
   }
@@ -1636,7 +1647,7 @@ $("btnOpenMdConfirm").addEventListener("click", () => {
   ).trim();
   if (!path) {
     setStatus(
-      "開く Markdown を一覧から選ぶか、パスを入力してください",
+      t("toast.needOpenPick"),
       "err"
     );
     return;
@@ -1681,7 +1692,7 @@ $("btnMdAsBack").addEventListener("click", () => {
 $("btnMdAsConfirm").addEventListener("click", () => {
   const path = $("mdModalPathInput").value.trim();
   if (!path) {
-    setStatus("Markdown の保存先を入力してください", "err");
+    setStatus(t("toast.needMdSavePath"), "err");
     $("mdModalPathInput").focus();
     return;
   }
@@ -1718,7 +1729,7 @@ $("mdModal").addEventListener("click", (e) => {
 $("btnPdf").addEventListener("click", () => {
   if (isDataDoc()) {
     setStatus(
-      dataDocLabel() + " の PDF 出力は未対応です（閲覧のみ）",
+      t("toast.pdfViewOnlyShort", { kind: dataDocLabel() }),
       "err"
     );
     return;
@@ -1742,7 +1753,7 @@ $("btnPdfAsBack").addEventListener("click", () => {
 $("btnPdfAsConfirm").addEventListener("click", () => {
   const path = $("pdfModalPathInput").value.trim();
   if (!path) {
-    setStatus("PDF の保存先を入力してください", "err");
+    setStatus(t("toast.needPdfPath"), "err");
     $("pdfModalPathInput").focus();
     return;
   }
@@ -1798,7 +1809,7 @@ $("dirtyModal").addEventListener("click", (e) => {
 });
 
 $("btnDropConflictCancel").addEventListener("click", () => {
-  cancelPendingDrop("ドロップをキャンセルしました");
+  cancelPendingDrop(t("toast.dropCancel"));
 });
 $("btnDropConflictOverwrite").addEventListener("click", () => {
   closeDropConflictModal();
@@ -1813,11 +1824,11 @@ $("btnDropConflictSaveAs").addEventListener("click", () => {
 });
 $("dropConflictModal").addEventListener("click", (e) => {
   if (e.target === $("dropConflictModal")) {
-    cancelPendingDrop("ドロップをキャンセルしました");
+    cancelPendingDrop(t("toast.dropCancel"));
   }
 });
 $("btnDropOpenCancel").addEventListener("click", () => {
-  cancelPendingDrop("ドロップをキャンセルしました");
+  cancelPendingDrop(t("toast.dropCancel"));
 });
 $("btnDropOpenBrowse").addEventListener("click", () => {
   browseForDroppedFile().catch((err) => {
@@ -1832,7 +1843,7 @@ $("btnDropOpenCopy").addEventListener("click", () => {
 });
 $("dropOpenModal").addEventListener("click", (e) => {
   if (e.target === $("dropOpenModal")) {
-    cancelPendingDrop("ドロップをキャンセルしました");
+    cancelPendingDrop(t("toast.dropCancel"));
   }
 });
 $("btnWelcomeOpen").addEventListener("click", () => {
@@ -2016,5 +2027,44 @@ window.addEventListener("focus", () => {
   pullExternalTabChanges();
 });
 
-loadState().catch((e) => setStatus(String(e.message || e), "err"));
+async function bootUi() {
+  await initI18n();
+  document.querySelectorAll("[data-set-lang]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const next = btn.getAttribute("data-set-lang");
+      if (!next || next === getLang()) {
+        const menu = $("langMenu");
+        if (menu) menu.open = false;
+        return;
+      }
+      await setLang(next);
+      if (state?.builtins) fillTemplateOptions(state.builtins, state.profileRef);
+      if (state?.profile) fillForm(state.profile);
+      updateDocModeUi();
+      updateHints();
+      updateSettingsHints();
+      updateNotePanelHint();
+      updateWelcomePanel();
+      updateNavBackButton();
+      applyAsideRail(isAsideRail());
+      renderTabBar();
+      fillHelpMenu(state?.library);
+      // Refresh library labels / START path from server for the new lang.
+      try {
+        await loadState();
+      } catch (e) {
+        setStatus(e instanceof Error ? e.message : String(e), "err");
+      }
+      setStatus(
+        t("toast.langSwitched", {
+          label: t(next === "en" ? "lang.en" : "lang.ja"),
+        }),
+        "ok"
+      );
+    });
+  });
+  await loadState();
+}
+
+bootUi().catch((e) => setStatus(String(e.message || e), "err"));
 

@@ -6,6 +6,7 @@
  */
 
 import { labelXmlName, listXmlDicts, pickXmlDict } from "./xml-dict.js";
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 export type XmlScanNode = {
   name: string;
@@ -231,6 +232,8 @@ export type XmlScanOptions = {
   dictsDir?: string;
   /** Disable dictionary lookup entirely. */
   noDict?: boolean;
+  /** UI language for report headers (default ja). */
+  lang?: Lang;
 };
 
 type ScanCtx = {
@@ -406,11 +409,12 @@ export function buildXmlScanReport(
     }
   }
 
+  const lang = options.lang ?? DEFAULT_LANG;
   const rootLabel = labelXmlName(parsed.root.name, labels);
   const lines: string[] = [
-    "XML スキャン表示",
-    `ファイル: ${fileLabel}`,
-    `ルート: ${rootLabel}`,
+    t(lang, "scan.report.xml") || "XML スキャン表示",
+    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`,
+    t(lang, "scan.root", { name: rootLabel }) || `ルート: ${rootLabel}`,
     dictLine,
     "",
   ];

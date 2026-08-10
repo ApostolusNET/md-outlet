@@ -184,7 +184,7 @@ img {
 
   .page-break::after,
   .md-outlet-page-break::after {
-    content: "改ページ";
+    content: var(--md-outlet-page-break-label, "改ページ");
     position: absolute;
     top: -0.65em;
     left: 50%;

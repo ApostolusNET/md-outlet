@@ -43,6 +43,8 @@ export function greet(name: string): string {
 
 ## まとめて切らない例
 
+<div class="keep-together">
+
 | 項目 | 状態 |
 |------|------|
 | 表罫線 | 残っていること |

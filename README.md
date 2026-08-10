@@ -2,81 +2,85 @@
 
 *Preferences for Markdown output — same source, your paper.*
 
-![書いて・見て・PDF に出す画面](docs/assets/ui.jpg)
+**Languages:** [English](README.md) · [日本語](README.ja.md)
 
-*左: 紙面設定　中央: Markdown　右: プレビュー（PDF と同じ HTML）*
+![Write, preview, and export PDF](docs/assets/ui.jpg)
 
-プレビューと PDF で見た目がズレる——Markdown あるあるです。  
-md-outlet は **同じ HTML パイプライン** で両方を揃え、紙面の好みは版管理できる `profile.yaml` に残します。
+*Left: page settings · Center: Markdown · Right: preview (same HTML as PDF)*
 
-**推奨環境:** Windows + 最新 Microsoft Edge（安定版）+ Node 18 LTS  
-**ダウンロード（Windows 向け zip）:** [Releases](https://github.com/ApostolusNET/md-outlet/releases)  
-**スタートガイド:** [docs/START.md](docs/START.md) · **サンプル:** [examples/sample.md](examples/sample.md)
+Preview and PDF often look different — a classic Markdown pain.  
+md-outlet uses the **same HTML pipeline** for both, and keeps page preferences in a versioned `profile.yaml`.
 
-| 気軽な閲覧（既定） | マニュアル（章ごと改ページ） |
+**Recommended:** Windows + current Microsoft Edge (stable) + Node 18 LTS  
+**Download (Windows zip):** [Releases](https://github.com/ApostolusNET/md-outlet/releases)  
+**Getting started:** [docs/START.md](docs/START.md) · [日本語ガイド](docs/START.ja.md)  
+**Sample:** [examples/sample.en.md](examples/sample.en.md) · [日本語サンプル](examples/sample.md)
+
+| Casual reading (default) | Manual (page break per chapter) |
 |:---:|:---:|
-| ![気軽な閲覧](docs/assets/layout-simple.jpg) | ![マニュアル](docs/assets/layout-manual.jpg) |
+| ![Casual layout](docs/assets/layout-simple.jpg) | ![Manual layout](docs/assets/layout-manual.jpg) |
 
-*ひな形を切り替えるだけで、余白や見出し改ページの紙面が変わります。*
+*Switching the template changes margins and heading page breaks.*
 
 ---
 
-## はじめ方
+## Quick start
 
 ```bash
 cd md-outlet
 npm install
-npx md-outlet ui          # 引数なし → スタートガイドが開く
+npx md-outlet ui          # no args → opens the start guide
 ```
 
-- **Windows:** `start-ui.bat` をダブルクリックでも同じ  
-- **macOS / Linux:** `./start-ui.sh`（初回だけ `chmod +x start-ui.sh`）
+- **Windows:** double-click `start-ui.bat`  
+- **macOS / Linux:** `./start-ui.sh` (first time: `chmod +x start-ui.sh`)  
+- In the UI, use the language control on the far right of the header (🇯🇵 / 🇺🇸)
 
 ```bash
-# 特定の Markdown を開く
+# Open a specific Markdown file
 npx md-outlet ui path/to/notes.md
 
-# CLI で PDF（任意）
+# CLI PDF (optional)
 npx md-outlet pdf examples/sample.md --profile default -o examples/sample.pdf
 ```
 
-Windows でエクスプローラーから開く場合は、設置フォルダで **`install-sendto.bat`** を一度実行（送る → md-outlet）。  
-フォルダを移動・改名したら再実行してください。起動中なら既存 UI にタブ追加されます（最大 3）。
+On Windows, run **`install-sendto.bat`** once in the install folder to open from Explorer (Send to → md-outlet).  
+Re-run after moving or renaming the folder. If the UI is already running, a second launch / Send to adds a tab (max 3).
 
-Linux は Docker（Chromium）で CLI／PDF／テスト確認済み。macOS は未確認。
+Linux is verified with Docker (Chromium) for CLI / PDF / tests. macOS is not verified yet.
 
-| 文書 | 内容 |
-|------|------|
-| [SPEC.md](SPEC.md) | 仕様 |
-| [schemas/profile-v1.json](schemas/profile-v1.json) | プロファイルスキーマ |
-| [LICENSE](LICENSE) | MIT（Copyright © 2026 I.C.A. Co., Ltd.） |
+| Doc | Contents |
+|-----|----------|
+| [SPEC.md](SPEC.md) | Specification (Japanese) |
+| [schemas/profile-v1.json](schemas/profile-v1.json) | Profile schema |
+| [LICENSE](LICENSE) | MIT (Copyright © 2026 I.C.A. Co., Ltd.) |
 
 ---
 
-## コマンド
+## Commands
 
-| コマンド | 用途 |
-|----------|------|
-| `md-outlet pdf <input.md>` | PDF 出力（既定は入力と同じ場所） |
-| `md-outlet html <input.md>` | 中間 HTML（プレビューと同じ） |
-| `md-outlet preview <input.md>` | ローカルでライブプレビュー |
-| `md-outlet ui [input.md]` | 設定 UI（推奨入口） |
-| `md-outlet init <name>` | プロファイル雛形を生成 |
+| Command | Purpose |
+|---------|---------|
+| `md-outlet pdf <input.md>` | Export PDF (default: next to the input) |
+| `md-outlet html <input.md>` | Intermediate HTML (same as preview) |
+| `md-outlet preview <input.md>` | Local live preview |
+| `md-outlet ui [input.md]` | Settings UI (recommended entry) |
+| `md-outlet init <name>` | Generate a profile stub |
 
-よく使うフラグ:
+Common flags:
 
-- `--profile, -p <名前|パス>` … 組み込み名（`default` / `ops-manual` / `simple-preview`）または YAML/JSON パス
-- `--output, -o <path>` … 出力先
-- `--port <n>` … プレビュー用ポート（既定 5757）
+- `--profile, -p <name|path>` … built-in name (`default` / `ops-manual` / `simple-preview`) or YAML/JSON path
+- `--output, -o <path>` … output path
+- `--port <n>` … preview port (default 5757)
 
-一時上書き（プロファイルファイルは変えない）:
+Temporary overrides (do not modify the profile file):
 
 - `--format A4|A3|Letter|Legal`
 - `--orientation portrait|landscape`
-- `--margin 15mm`（または `--margin-top` など）
-- `--scale 0.9`（PDF のみ、0.1〜2.0）
+- `--margin 15mm` (or `--margin-top`, etc.)
+- `--scale 0.9` (PDF only, 0.1–2.0)
 
-ブロックをできるだけ同一ページに残す:
+Keep a block on one page when possible:
 
 ```html
 <div class="keep-together">
@@ -84,9 +88,9 @@ Linux は Docker（Chromium）で CLI／PDF／テスト確認済み。macOS は�
 </div>
 ```
 
-### Front matter（文書ごとの設定）
+### Front matter (per-document settings)
 
-Markdown 先頭に書けます。単発なら別プロファイル不要です。
+Put this at the top of a Markdown file. No separate profile needed for one-offs.
 
 ```markdown
 ---
@@ -97,17 +101,17 @@ md-outlet:
     margin: { top: 15mm, right: 15mm, bottom: 15mm, left: 15mm }
 ---
 
-# タイトル
+# Title
 ```
 
-解決順: **ベースプロファイル → front matter → CLI 上書き**。  
-`--profile` を明示すると `extends` より優先されます。
+Resolution order: **base profile → front matter → CLI overrides**.  
+An explicit `--profile` wins over `extends`.
 
 ```bash
 npx md-outlet pdf examples/sample-frontmatter.md -o examples/sample-frontmatter.pdf
 ```
 
-### プロファイル初期化
+### Initialize a profile
 
 ```bash
 npx md-outlet init my-report
@@ -116,34 +120,34 @@ npx md-outlet init --list
 npx md-outlet pdf doc.md --profile ./my-report.yaml
 ```
 
-既存ファイルは `--force` なしでは上書きしません。
+Existing files are not overwritten without `--force`.
 
-### 設定 UI
+### Settings UI
 
 ```bash
 npx md-outlet ui
 npx md-outlet ui path/to/README.md
 npx md-outlet ui examples/sample.md --profile default -o ./my-report.yaml
-npx md-outlet ui --no-open   # ブラウザを開かない（CI など）
+npx md-outlet ui --no-open   # do not open a browser (CI, etc.)
 ```
 
-既定で `http://127.0.0.1:5760/` を開きます。既に UI が動いていれば、2 つ目の起動／「送る」は **既存へタブ追加**（最大 3。4 つ目は拒否）。
+Opens `http://127.0.0.1:5760/` by default. If a UI is already running, a second launch / Send to **adds a tab** (max 3; a 4th is rejected).
 
-画面の見方:
+Layout:
 
-- **左** … 用紙・テーマ・H1 改ページなど → **Yaml設定保存**
-- **中央** … **MDメニュー → 編集** で Markdown エディター
-- **右** … ライブプレビュー（PDF と同じ HTML）。データ文書はスキャン表示
-- **ヘッダー** … MDメニュー（新規／開く／編集／保存／閉じる）、PDFに出力、Yaml設定保存、ガイド
+- **Left** … paper, theme, H1 page breaks → **Save YAML**
+- **Center** … **MD menu → Edit** for the Markdown editor
+- **Right** … live preview (same HTML as PDF). Data docs show a scan view
+- **Header** … MD menu (New / Open / Edit / Save / Close), Export PDF, Save YAML, Guide
 
-組み込みの `profiles/` は上書きしません（`-o` で別ファイルへ）。  
-UI はバンドラなし（`ui/index.html` + `ui/styles.css` + `ui/js/*.js`）。
+Built-in files under `profiles/` are never overwritten (use `-o` for a new file).  
+The UI is unbundled (`ui/index.html` + `ui/styles.css` + `ui/js/*.js`).
 
 ---
 
-## プロファイル
+## Profiles
 
-出力を 1 ファイル（`.yaml` / `.yml` / `.json`）で表します。項目一覧は [SPEC.md](SPEC.md)。
+One file (`.yaml` / `.yml` / `.json`) describes output. Full field list: [SPEC.md](SPEC.md).
 
 ```yaml
 version: 1
@@ -158,28 +162,28 @@ breaks:
   skipFirst: true
 ```
 
-組み込み:
+Built-ins:
 
-- `simple-preview` … 気軽な閲覧（UI 既定。H1 強制改ページなし）
-- `default` … 一般文書
-- `ops-manual` … 運用マニュアル向け（表紙＋ H1 ごと章立て）
+- `simple-preview` … casual reading (UI default; no forced H1 page breaks)
+- `default` … general documents
+- `ops-manual` … operations manuals (cover + chapter per H1)
 
-### 改ページ
+### Page breaks
 
-次を併用できます。二重改ページで白紙ページは出さない実装です。
+You can combine these. The implementation avoids blank pages from double breaks.
 
-- Markdown 内: `<div class="page-break"></div>`
-- プロファイル: `breaks.beforeHeadings: [h1]`（先頭 H1 は `skipFirst` でスキップ可）
+- In Markdown: `<div class="page-break"></div>`
+- In the profile: `breaks.beforeHeadings: [h1]` (first H1 can be skipped with `skipFirst`)
 
-見出し直前に手書き改ページがある場合、自動注入は省略されます。
+If an author-written break already sits before a heading, automatic injection is skipped.
 
 ---
 
-## テーマ
+## Themes
 
-`themes/<name>/theme.css` に置きます。同梱 `default` は表罫線・コード背景など、ブラウザ印刷で落ちやすい要素を補います。
+Place CSS at `themes/<name>/theme.css`. The bundled `default` theme fills in table borders, code backgrounds, and other pieces that often drop out in browser print.
 
-プロファイルからの相対パスも可:
+Relative paths from the profile are allowed:
 
 ```yaml
 theme: ./themes/paper/theme.css
@@ -187,23 +191,23 @@ theme: ./themes/paper/theme.css
 
 ---
 
-## 設計の約束
+## Design commitments
 
-実装で守る前提です（詳細は SPEC）。
+Guarantees the implementation aims to keep (details in SPEC):
 
-1. プレビューと PDF は同じ生成 HTML を使う  
-2. `theme: default` で表罫線・コード背景を失わない  
-3. `breaks.beforeHeadings` は Chromium PDF 向けに実要素を注入する  
-4. 描画前に `schemas/profile-v1.json` で検証する  
+1. Preview and PDF use the same generated HTML  
+2. `theme: default` does not lose table borders or code backgrounds  
+3. `breaks.beforeHeadings` injects real elements for Chromium PDF  
+4. Profiles are validated against `schemas/profile-v1.json` before render  
 
 ---
 
-## 開発
+## Development
 
 ```bash
 npm install
-npm run test:schema   # 同梱プロファイル検証
-npm run smoke         # サンプル PDF
-npm test              # 一式
+npm run test:schema   # validate bundled profiles
+npm run smoke         # sample PDF
+npm test              # full suite
 npm run cli -- pdf examples/sample.md
 ```

@@ -2,6 +2,7 @@ import { extname } from "node:path";
 import { buildXmlScanReport } from "./xml-scan.js";
 import { buildDataScanReport } from "./data-scan.js";
 import { buildPlainDataScanReport } from "./text-scan.js";
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 export type DocKind =
   | "md"
@@ -135,13 +136,17 @@ export function prettyXmlText(raw: string): string {
 }
 
 const BANNERS: Record<DataDocKind, string> = {
-  xml: "XML スキャン表示（段階3: 日付・金額・HTML除去・辞書ラベル）",
-  json: "JSON スキャン表示（構造を人が追える形式）",
-  yaml: "YAML スキャン表示（構造を人が追える形式）",
-  txt: "TXT 表示（生テキスト）",
-  log: "LOG 表示（行番号付き・フィルタ対応）",
-  csv: "CSV スキャン表示（行×列の読み下し）",
+  xml: "XML スキャン表示",
+  json: "JSON スキャン表示",
+  yaml: "YAML スキャン表示",
+  txt: "TXT 表示",
+  log: "LOG 表示",
+  csv: "CSV スキャン表示",
 };
+
+function bannerFor(kind: DataDocKind, lang: Lang): string {
+  return t(lang, `scan.banner.${kind}`) || BANNERS[kind];
+}
 
 const FALLBACK_NAMES: Record<DataDocKind, string> = {
   xml: "document.xml",
@@ -156,29 +161,36 @@ export function fallbackDataDocName(kind: DataDocKind): string {
   return FALLBACK_NAMES[kind];
 }
 
-function scanReportFor(kind: DataDocKind, raw: string, label: string): string {
-  if (kind === "xml") return buildXmlScanReport(raw, label);
+function scanReportFor(
+  kind: DataDocKind,
+  raw: string,
+  label: string,
+  lang: Lang
+): string {
+  if (kind === "xml") return buildXmlScanReport(raw, label, { lang });
   if (kind === "json" || kind === "yaml") {
-    return buildDataScanReport(kind, raw, label);
+    return buildDataScanReport(kind, raw, label, lang);
   }
-  return buildPlainDataScanReport(kind, raw, label);
+  return buildPlainDataScanReport(kind, raw, label, lang);
 }
 
 /** HTML preview for scan-only data documents. */
 export function dataPreviewHtml(
   kind: DataDocKind,
   raw: string,
-  fileLabel: string
+  fileLabel: string,
+  lang: Lang = DEFAULT_LANG
 ): string {
-  const body = scanReportFor(kind, raw, fileLabel);
+  const body = scanReportFor(kind, raw, fileLabel, lang);
   const escaped = body
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
   const title = fileLabel.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const banner = BANNERS[kind];
+  const banner = bannerFor(kind, lang);
+  const htmlLang = lang === "en" ? "en" : "ja";
   return `<!DOCTYPE html>
-<html lang="ja">
+<html lang="${htmlLang}">
 <head>
 <meta charset="utf-8" />
 <title>${title}</title>

@@ -33,6 +33,7 @@
     "ui",
     "examples",
     "docs",
+    "locales",
     "start-ui.bat",
     "start-ui.sh",
     "start-ui-sendto.ps1",
@@ -40,6 +41,7 @@
     "uninstall-sendto.bat",
     "SPEC.md",
     "README.md",
+    "README.ja.md",
     "LICENSE",
     "package-lock.json"
   ],
@@ -56,11 +58,12 @@
     "test:frontmatter": "tsx scripts/test-frontmatter.ts",
     "test:init": "tsx scripts/test-init.ts",
     "test:ui": "tsx scripts/test-ui.ts",
+    "test:i18n": "tsx scripts/test-i18n.ts",
     "test:stability": "tsx scripts/test-stability.ts",
     "test:browser": "tsx scripts/test-browser.ts",
     "gen:heavy-examples": "tsx scripts/gen-heavy-examples.ts",
     "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-release.ps1",
-    "test": "npm run test:schema && npm run test:idempotent && npm run test:overrides && npm run test:frontmatter && npm run test:init && npm run test:ui && npm run test:stability && npm run test:browser"
+    "test": "npm run test:schema && npm run test:idempotent && npm run test:overrides && npm run test:frontmatter && npm run test:init && npm run test:ui && npm run test:i18n && npm run test:stability && npm run test:browser"
   },
   "dependencies": {
     "ajv": "^8.17.1",

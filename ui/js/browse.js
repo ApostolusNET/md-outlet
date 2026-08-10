@@ -2,6 +2,7 @@
  * Folder browse lists for open / save / new modals.
  */
 import { $, setStatus } from "./dom.js";
+import { apiFetch, t } from "./i18n.js";
 
 let api = {};
 export function bindBrowse(next) {
@@ -28,7 +29,7 @@ export function browseUi() {
       input: $("mdModalPathInput"),
       ext: "md",
       fileKind: "md",
-      emptyMsg: "このフォルダに Markdown はありません（下に名前を入力）",
+      emptyMsg: t("browse.emptyMd"),
     };
   }
   if (browseState.mode === "save-pdf") {
@@ -41,7 +42,7 @@ export function browseUi() {
       input: $("pdfModalPathInput"),
       ext: "pdf",
       fileKind: "pdf",
-      emptyMsg: "このフォルダに PDF はありません（下に名前を入力）",
+      emptyMsg: t("browse.emptyPdf"),
     };
   }
   if (browseState.mode === "new-md") {
@@ -54,7 +55,7 @@ export function browseUi() {
       input: $("newMdPathInput"),
       ext: "md",
       fileKind: "md",
-      emptyMsg: "このフォルダに Markdown はありません（下に名前を入力）",
+      emptyMsg: t("browse.emptyMd"),
     };
   }
   return {
@@ -66,8 +67,7 @@ export function browseUi() {
     input: $("openMdPathInput"),
     ext: "md,xml,json,yaml,yml,txt,log,csv,tsv",
     fileKind: "doc",
-    emptyMsg:
-      "このフォルダに Markdown / XML / JSON / YAML / TXT / LOG / CSV はありません",
+    emptyMsg: t("browse.emptyDocs"),
   };
 }
 
@@ -200,10 +200,10 @@ export async function loadBrowseDir(dir) {
     "?ext=" +
     encodeURIComponent(ui.ext) +
     (dir ? "&dir=" + encodeURIComponent(dir) : "");
-  const res = await fetch("/api/browse-md" + q);
+  const res = await apiFetch("/api/browse-md" + q);
   const data = await res.json();
   if (!res.ok) {
-    setStatus(data.error || "フォルダを開けませんでした", "err");
+    setStatus(data.error || t("browse.openFail"), "err");
     return;
   }
   browseState.dir = data.dir || "";
@@ -221,7 +221,7 @@ export function fillBrowseRoots(sel) {
   sel.textContent = "";
   const ph = document.createElement("option");
   ph.value = "";
-  ph.textContent = roots.length ? "場所を選ぶ…" : "（追加の場所なし）";
+  ph.textContent = roots.length ? t("browse.pickPlace") : t("browse.noExtraPlace");
   sel.appendChild(ph);
   for (const r of roots) {
     const opt = document.createElement("option");

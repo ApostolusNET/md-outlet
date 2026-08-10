@@ -11,25 +11,41 @@
     <h1 id="appTitle">md-outlet ui</h1>
     <div class="actions">
       <details class="menu" id="mdMenu">
-        <summary>MDメニュー</summary>
+        <summary data-i18n="header.mdMenu">MDメニュー</summary>
         <div class="menu-panel">
-          <button type="button" id="btnNewMd">新規作成 (Ctrl+Alt+N)</button>
-          <button type="button" id="btnOpenMd">開く (Ctrl+Alt+O)</button>
-          <button type="button" id="btnToggleEditor">編集 (Ctrl+Alt+E)</button>
-          <button type="button" id="btnSaveMd">保存 (Ctrl+Alt+S)</button>
-          <button type="button" id="btnCloseMd">閉じる (Ctrl+Alt+W)</button>
+          <button type="button" id="btnNewMd" data-i18n="header.newMd">新規作成 (Ctrl+Alt+N)</button>
+          <button type="button" id="btnOpenMd" data-i18n="header.openMd">開く (Ctrl+Alt+O)</button>
+          <button type="button" id="btnToggleEditor" data-i18n="header.editMd">編集 (Ctrl+Alt+E)</button>
+          <button type="button" id="btnSaveMd" data-i18n="header.saveMd">保存 (Ctrl+Alt+S)</button>
+          <button type="button" id="btnCloseMd" data-i18n="header.closeMd">閉じる (Ctrl+Alt+W)</button>
         </div>
       </details>
-      <button type="button" id="btnPdf">PDFに出力</button>
-      <button type="button" class="primary" id="btnSave">Yaml設定保存</button>
+      <button type="button" id="btnPdf" data-i18n="header.pdf">PDFに出力</button>
+      <button type="button" class="primary" id="btnSave" data-i18n="header.saveYaml">Yaml設定保存</button>
       <details class="menu" id="helpMenu">
-        <summary>ガイド</summary>
+        <summary data-i18n="header.guide">ガイド</summary>
         <div class="menu-panel" id="helpMenuPanel">
+        </div>
+      </details>
+      <details class="menu lang-menu" id="langMenu">
+        <summary id="langMenuSummary" data-i18n-aria="lang.switchTo" title="言語 / Language" aria-label="言語 / Language">
+          <span class="lang-flag" data-flag="ja" aria-hidden="true"></span>
+          <span class="lang-label" data-i18n="lang.ja">日本語</span>
+        </summary>
+        <div class="menu-panel" id="langMenuPanel">
+          <button type="button" data-set-lang="ja" class="active">
+            <span class="lang-flag" data-flag="ja" aria-hidden="true"></span>
+            <span data-i18n="lang.ja">日本語</span>
+          </button>
+          <button type="button" data-set-lang="en">
+            <span class="lang-flag" data-flag="en" aria-hidden="true"></span>
+            <span data-i18n="lang.en">English</span>
+          </button>
         </div>
       </details>
     </div>
   </header>
-  <nav id="tabBar" class="tab-bar" hidden aria-label="開いているファイル">
+  <nav id="tabBar" class="tab-bar" hidden data-i18n-aria="tab.barAria" aria-label="開いているファイル">
     <div id="tabList" class="tab-list" role="tablist"></div>
   </nav>
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
@@ -39,157 +55,157 @@
       <span class="banner-path" id="bannerPath" hidden></span>
     </div>
     <div class="banner-actions">
-      <button type="button" class="primary" id="btnOpenPdf" hidden>PDF を開く</button>
-      <button type="button" id="btnDismissBanner" hidden>閉じる</button>
+      <button type="button" class="primary" id="btnOpenPdf" hidden data-i18n="banner.openPdf">PDF を開く</button>
+      <button type="button" id="btnDismissBanner" hidden data-i18n="banner.dismiss">閉じる</button>
     </div>
   </div>
   <div id="dirtyModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dirtyModalTitle">
-      <h2 id="dirtyModalTitle">未保存の変更があります</h2>
-      <p id="dirtyModalMessage">Markdown または紙面設定が保存されていません。保存しますか？</p>
+      <h2 id="dirtyModalTitle" data-i18n="modal.dirtyTitle">未保存の変更があります</h2>
+      <p id="dirtyModalMessage" data-i18n="modal.dirtyMessage">Markdown または紙面設定が保存されていません。保存しますか？</p>
       <div class="modal-actions">
-        <button type="button" id="btnDirtyCancel">キャンセル</button>
-        <button type="button" id="btnDirtyDiscard">保存しない</button>
-        <button type="button" class="primary" id="btnDirtySave">保存して続行</button>
+        <button type="button" id="btnDirtyCancel" data-i18n="common.cancel">キャンセル</button>
+        <button type="button" id="btnDirtyDiscard" data-i18n="modal.dirtyDiscard">保存しない</button>
+        <button type="button" class="primary" id="btnDirtySave" data-i18n="modal.dirtySave">保存して続行</button>
       </div>
     </div>
   </div>
   <div id="pdfModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
-      <h2 id="pdfModalTitle">Export PDF</h2>
+      <h2 id="pdfModalTitle" data-i18n="modal.pdfTitle">Export PDF</h2>
       <div id="pdfModalStepSave">
-        <p>どこに保存しますか？</p>
+        <p data-i18n="modal.pdfWhere">どこに保存しますか？</p>
         <div class="modal-path" id="pdfModalOverwritePath"></div>
         <div class="modal-actions">
-          <button type="button" id="btnPdfCancel">キャンセル</button>
-          <button type="button" id="btnPdfSaveAs">別名で保存…</button>
-          <button type="button" class="primary" id="btnPdfOverwrite">上書き保存</button>
+          <button type="button" id="btnPdfCancel" data-i18n="common.cancel">キャンセル</button>
+          <button type="button" id="btnPdfSaveAs" data-i18n="modal.pdfSaveAs">別名で保存…</button>
+          <button type="button" class="primary" id="btnPdfOverwrite" data-i18n="modal.pdfOverwrite">上書き保存</button>
         </div>
       </div>
       <div id="pdfModalStepAs" hidden>
-        <p>保存先フォルダを選び、ファイル名を確認してください。既存の PDF をクリックするとそのパスが入ります。</p>
+        <p data-i18n="modal.pdfAsLead">保存先フォルダを選び、ファイル名を確認してください。既存の PDF をクリックするとそのパスが入ります。</p>
         <div class="browse-toolbar">
-          <button type="button" id="btnPdfSaveUp" title="上のフォルダ">↑</button>
-          <button type="button" id="btnPdfSaveHome" title="md-outlet に戻る">Home</button>
-          <label class="browse-root-label" for="pdfSaveRootSelect">場所</label>
-          <select id="pdfSaveRootSelect" title="ドライブ / WSL"></select>
+          <button type="button" id="btnPdfSaveUp" title="上のフォルダ" data-i18n-title="common.upFolder">↑</button>
+          <button type="button" id="btnPdfSaveHome" title="md-outlet に戻る" data-i18n-title="common.homeTitle">Home</button>
+          <label class="browse-root-label" for="pdfSaveRootSelect" data-i18n="common.location">場所</label>
+          <select id="pdfSaveRootSelect" title="ドライブ / WSL" data-i18n-title="common.driveWsl"></select>
           <div class="modal-path" id="pdfSaveBrowsePath">.</div>
         </div>
-        <div class="browse-list" id="pdfSaveBrowseList" role="listbox" aria-label="保存先一覧"></div>
-        <label for="pdfModalPathInput">ファイル名 / パス</label>
+        <div class="browse-list" id="pdfSaveBrowseList" role="listbox" aria-label="保存先一覧" data-i18n-aria="common.browseList"></div>
+        <label for="pdfModalPathInput" data-i18n="common.filePath">ファイル名 / パス</label>
         <input id="pdfModalPathInput" autocomplete="off" placeholder="./report.pdf" />
-        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.pdf</code> を付けます。</p>
+        <p data-i18n="modal.pdfAsHint">相対パスは作業フォルダ基準。拡張子なしなら .pdf を付けます。</p>
         <div class="modal-actions">
-          <button type="button" id="btnPdfAsBack">戻る</button>
-          <button type="button" class="primary" id="btnPdfAsConfirm">この名前で保存</button>
+          <button type="button" id="btnPdfAsBack" data-i18n="common.back">戻る</button>
+          <button type="button" class="primary" id="btnPdfAsConfirm" data-i18n="modal.pdfAsConfirm">この名前で保存</button>
         </div>
       </div>
     </div>
   </div>
   <div id="mdModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mdModalTitle">
-      <h2 id="mdModalTitle">Save Markdown</h2>
+      <h2 id="mdModalTitle" data-i18n="modal.mdTitle">Save Markdown</h2>
       <div id="mdModalStepSave">
-        <p>どこに保存しますか？</p>
+        <p data-i18n="modal.mdWhere">どこに保存しますか？</p>
         <div class="modal-path" id="mdModalOverwritePath"></div>
         <div class="modal-actions">
-          <button type="button" id="btnMdCancel">キャンセル</button>
-          <button type="button" id="btnMdSaveAs">別名で保存…</button>
-          <button type="button" class="primary" id="btnMdOverwrite">上書き保存</button>
+          <button type="button" id="btnMdCancel" data-i18n="common.cancel">キャンセル</button>
+          <button type="button" id="btnMdSaveAs" data-i18n="modal.mdSaveAs">別名で保存…</button>
+          <button type="button" class="primary" id="btnMdOverwrite" data-i18n="modal.mdOverwrite">上書き保存</button>
         </div>
       </div>
       <div id="mdModalStepAs" hidden>
-        <p>保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
+        <p data-i18n="modal.mdAsLead">保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
         <div class="browse-toolbar">
-          <button type="button" id="btnMdSaveUp" title="上のフォルダ">↑</button>
-          <button type="button" id="btnMdSaveHome" title="md-outlet に戻る">Home</button>
-          <label class="browse-root-label" for="mdSaveRootSelect">場所</label>
-          <select id="mdSaveRootSelect" title="ドライブ / WSL"></select>
+          <button type="button" id="btnMdSaveUp" title="上のフォルダ" data-i18n-title="common.upFolder">↑</button>
+          <button type="button" id="btnMdSaveHome" title="md-outlet に戻る" data-i18n-title="common.homeTitle">Home</button>
+          <label class="browse-root-label" for="mdSaveRootSelect" data-i18n="common.location">場所</label>
+          <select id="mdSaveRootSelect" title="ドライブ / WSL" data-i18n-title="common.driveWsl"></select>
           <div class="modal-path" id="mdSaveBrowsePath">.</div>
         </div>
-        <div class="browse-list" id="mdSaveBrowseList" role="listbox" aria-label="保存先一覧"></div>
-        <label for="mdModalPathInput">ファイル名 / パス</label>
+        <div class="browse-list" id="mdSaveBrowseList" role="listbox" aria-label="保存先一覧" data-i18n-aria="common.browseList"></div>
+        <label for="mdModalPathInput" data-i18n="common.filePath">ファイル名 / パス</label>
         <input id="mdModalPathInput" autocomplete="off" placeholder="./notes.md" />
-        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。保存後はそのファイルを編集対象にします。</p>
+        <p data-i18n="modal.mdAsHint">相対パスは作業フォルダ基準。拡張子なしなら .md を付けます。保存後はそのファイルを編集対象にします。</p>
         <div class="modal-actions">
-          <button type="button" id="btnMdAsBack">戻る</button>
-          <button type="button" class="primary" id="btnMdAsConfirm">この名前で保存</button>
+          <button type="button" id="btnMdAsBack" data-i18n="common.back">戻る</button>
+          <button type="button" class="primary" id="btnMdAsConfirm" data-i18n="modal.mdAsConfirm">この名前で保存</button>
         </div>
       </div>
     </div>
   </div>
   <div id="openMdModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="openMdModalTitle">
-      <h2 id="openMdModalTitle">ファイルを開く</h2>
-      <p>最初は <code>md-outlet</code>。<strong>場所</strong>からドライブや WSL（<code>\\wsl.localhost\…</code>）へジャンプできます。フォルダを開いて <code>.md</code>、または <code>.xml</code> / <code>.json</code> / <code>.yaml</code> / <code>.txt</code> / <code>.log</code> / <code>.csv</code>（閲覧）を選んでください。</p>
+      <h2 id="openMdModalTitle" data-i18n="modal.openTitle">ファイルを開く</h2>
+      <p data-i18n="modal.openLead">最初は md-outlet。場所からドライブや WSL へジャンプできます。フォルダを開いて .md、またはデータファイル（閲覧）を選んでください。</p>
       <div class="browse-toolbar">
-        <button type="button" id="btnOpenMdUp" title="上のフォルダ">↑</button>
-        <button type="button" id="btnOpenMdHome" title="md-outlet に戻る">Home</button>
-        <label class="browse-root-label" for="openMdRootSelect">場所</label>
-        <select id="openMdRootSelect" title="ドライブ / WSL"></select>
+        <button type="button" id="btnOpenMdUp" title="上のフォルダ" data-i18n-title="common.upFolder">↑</button>
+        <button type="button" id="btnOpenMdHome" title="md-outlet に戻る" data-i18n-title="common.homeTitle">Home</button>
+        <label class="browse-root-label" for="openMdRootSelect" data-i18n="common.location">場所</label>
+        <select id="openMdRootSelect" title="ドライブ / WSL" data-i18n-title="common.driveWsl"></select>
         <div class="modal-path" id="openMdBrowsePath">.</div>
       </div>
-      <div class="browse-list" id="openMdBrowseList" role="listbox" aria-label="ファイル一覧"></div>
+      <div class="browse-list" id="openMdBrowseList" role="listbox" aria-label="ファイル一覧" data-i18n-aria="common.fileList"></div>
       <details class="browse-advanced">
-        <summary>パスを直接入力</summary>
-        <label for="openMdPathInput">ファイル名 / パス</label>
+        <summary data-i18n="modal.openPathDirect">パスを直接入力</summary>
+        <label for="openMdPathInput" data-i18n="common.filePath">ファイル名 / パス</label>
         <input id="openMdPathInput" autocomplete="off" placeholder="./examples/sample.md" />
-        <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。</p>
+        <p data-i18n="modal.openPathHint">相対パスは作業フォルダ基準。拡張子なしなら .md を付けます。</p>
       </details>
       <div class="modal-actions">
-        <button type="button" id="btnOpenMdCancel">キャンセル</button>
-        <button type="button" class="primary" id="btnOpenMdConfirm">開く</button>
+        <button type="button" id="btnOpenMdCancel" data-i18n="common.cancel">キャンセル</button>
+        <button type="button" class="primary" id="btnOpenMdConfirm" data-i18n="common.open">開く</button>
       </div>
     </div>
   </div>
   <div id="newMdModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newMdModalTitle">
-      <h2 id="newMdModalTitle">New Markdown</h2>
-      <p id="newMdModalLead">保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
+      <h2 id="newMdModalTitle" data-i18n="modal.newTitle">New Markdown</h2>
+      <p id="newMdModalLead" data-i18n="modal.newLead">保存先フォルダを選び、ファイル名を確認してください。既存の Markdown をクリックするとそのパスが入ります。</p>
       <div class="browse-toolbar">
-        <button type="button" id="btnNewMdUp" title="上のフォルダ">↑</button>
-        <button type="button" id="btnNewMdHome" title="md-outlet に戻る">Home</button>
-        <label class="browse-root-label" for="newMdRootSelect">場所</label>
-        <select id="newMdRootSelect" title="ドライブ / WSL"></select>
+        <button type="button" id="btnNewMdUp" title="上のフォルダ" data-i18n-title="common.upFolder">↑</button>
+        <button type="button" id="btnNewMdHome" title="md-outlet に戻る" data-i18n-title="common.homeTitle">Home</button>
+        <label class="browse-root-label" for="newMdRootSelect" data-i18n="common.location">場所</label>
+        <select id="newMdRootSelect" title="ドライブ / WSL" data-i18n-title="common.driveWsl"></select>
         <div class="modal-path" id="newMdBrowsePath">.</div>
       </div>
-      <div class="browse-list" id="newMdBrowseList" role="listbox" aria-label="保存先一覧"></div>
-      <label for="newMdPathInput">ファイル名 / パス</label>
+      <div class="browse-list" id="newMdBrowseList" role="listbox" aria-label="保存先一覧" data-i18n-aria="common.browseList"></div>
+      <label for="newMdPathInput" data-i18n="common.filePath">ファイル名 / パス</label>
       <input id="newMdPathInput" autocomplete="off" placeholder="./untitled.md" />
-      <p>相対パスは作業フォルダ基準。拡張子なしなら <code>.md</code> を付けます。作成後に編集を開始します。</p>
+      <p data-i18n="modal.newHint">相対パスは作業フォルダ基準。拡張子なしなら .md を付けます。作成後に編集を開始します。</p>
       <div class="modal-actions">
-        <button type="button" id="btnNewMdCancel">キャンセル</button>
-        <button type="button" class="primary" id="btnNewMdConfirm">作成</button>
+        <button type="button" id="btnNewMdCancel" data-i18n="common.cancel">キャンセル</button>
+        <button type="button" class="primary" id="btnNewMdConfirm" data-i18n="common.create">作成</button>
       </div>
     </div>
   </div>
   <div id="dropConflictModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dropConflictTitle">
-      <h2 id="dropConflictTitle">同じ名前のファイルがあります</h2>
-      <p>上書きするか、別名で保存するか選んでください。</p>
+      <h2 id="dropConflictTitle" data-i18n="modal.dropConflictTitle">同じ名前のファイルがあります</h2>
+      <p data-i18n="modal.dropConflictLead">上書きするか、別名で保存するか選んでください。</p>
       <div class="modal-path" id="dropConflictPath"></div>
       <div class="modal-actions">
-        <button type="button" id="btnDropConflictCancel">キャンセル</button>
-        <button type="button" id="btnDropConflictSaveAs">別名で保存…</button>
-        <button type="button" class="primary" id="btnDropConflictOverwrite">上書きして開く</button>
+        <button type="button" id="btnDropConflictCancel" data-i18n="common.cancel">キャンセル</button>
+        <button type="button" id="btnDropConflictSaveAs" data-i18n="modal.dropConflictSaveAs">別名で保存…</button>
+        <button type="button" class="primary" id="btnDropConflictOverwrite" data-i18n="modal.dropConflictOverwrite">上書きして開く</button>
       </div>
     </div>
   </div>
   <div id="dropOpenModal" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dropOpenTitle">
-      <h2 id="dropOpenTitle">ドロップしたファイル</h2>
+      <h2 id="dropOpenTitle" data-i18n="modal.dropOpenTitle">ドロップしたファイル</h2>
       <p id="dropOpenLead"></p>
       <div class="modal-path" id="dropOpenPath" hidden></div>
       <div class="browse-list" id="dropOpenList" role="listbox" hidden></div>
       <div class="modal-actions">
-        <button type="button" id="btnDropOpenCancel">キャンセル</button>
-        <button type="button" id="btnDropOpenCopy" hidden>コピーして開く</button>
-        <button type="button" id="btnDropOpenBrowse" hidden>参照して開く</button>
+        <button type="button" id="btnDropOpenCancel" data-i18n="common.cancel">キャンセル</button>
+        <button type="button" id="btnDropOpenCopy" hidden data-i18n="modal.dropOpenCopy">コピーして開く</button>
+        <button type="button" id="btnDropOpenBrowse" hidden data-i18n="modal.dropOpenBrowse">参照して開く</button>
       </div>
     </div>
   </div>
   <div id="dropOverlay" class="drop-overlay" hidden aria-hidden="true">
-    <div class="drop-overlay-inner">Markdown をドロップ（元の場所で開きます）</div>
+    <div class="drop-overlay-inner" data-i18n="drop.overlay">Markdown をドロップ（元の場所で開きます）</div>
   </div>
   <main>
     <aside id="asidePanel">
@@ -199,125 +215,127 @@
           id="btnAsideToggle"
           aria-controls="asideBody"
           aria-expanded="true"
+          data-i18n-title="aside.toggleTitle"
           title="設定パネルをしまう (Ctrl+Alt+B)"
         >‹</button>
       </div>
       <div class="aside-body" id="asideBody">
-      <label for="templateSelect">書式のひな形</label>
+      <label for="templateSelect" data-i18n="aside.template">書式のひな形</label>
       <select id="templateSelect"></select>
 
       <details class="settings-block" id="pagePanel">
         <summary>
-          <span class="settings-title">用紙</span>
+          <span class="settings-title" data-i18n="aside.page">用紙</span>
           <span class="settings-hint" id="pagePanelHint">A4：縦</span>
         </summary>
-        <label for="format">サイズ</label>
+        <label for="format" data-i18n="aside.format">サイズ</label>
         <select id="format">
           <option>A4</option>
           <option>A3</option>
           <option>Letter</option>
           <option>Legal</option>
         </select>
-        <label for="orientation">向き</label>
+        <label for="orientation" data-i18n="aside.orientation">向き</label>
         <select id="orientation">
-          <option value="portrait">縦</option>
-          <option value="landscape">横</option>
+          <option value="portrait" data-i18n="aside.orient.portrait">縦</option>
+          <option value="landscape" data-i18n="aside.orient.landscape">横</option>
         </select>
-        <label for="marginPreset">余白</label>
+        <label for="marginPreset" data-i18n="aside.margin">余白</label>
         <select id="marginPreset">
-          <option value="normal" selected>普通</option>
-          <option value="narrow">狭い</option>
-          <option value="wide">広い</option>
-          <option value="custom">数値で指定</option>
+          <option value="normal" selected data-i18n="aside.margin.normal">普通</option>
+          <option value="narrow" data-i18n="aside.margin.narrow">狭い</option>
+          <option value="wide" data-i18n="aside.margin.wide">広い</option>
+          <option value="custom" data-i18n="aside.margin.custom">数値で指定</option>
         </select>
         <div class="row-4" id="marginCustomRow" hidden>
           <div>
-            <label for="mTop">上</label>
+            <label for="mTop" data-i18n="aside.margin.top">上</label>
             <input id="mTop" placeholder="20mm" />
           </div>
           <div>
-            <label for="mRight">右</label>
+            <label for="mRight" data-i18n="aside.margin.right">右</label>
             <input id="mRight" placeholder="18mm" />
           </div>
           <div>
-            <label for="mBottom">下</label>
+            <label for="mBottom" data-i18n="aside.margin.bottom">下</label>
             <input id="mBottom" placeholder="20mm" />
           </div>
           <div>
-            <label for="mLeft">左</label>
+            <label for="mLeft" data-i18n="aside.margin.left">左</label>
             <input id="mLeft" placeholder="18mm" />
           </div>
         </div>
-        <label for="scale">PDFの縮小・拡大</label>
+        <label for="scale" data-i18n="aside.scale">PDFの縮小・拡大</label>
         <input id="scale" type="number" min="0.1" max="2" step="0.05" />
-        <label class="check"><input type="checkbox" id="printBg" checked /> 背景色も印刷する</label>
+        <label class="check"><input type="checkbox" id="printBg" checked /> <span data-i18n="aside.printBg">背景色も印刷する</span></label>
       </details>
 
       <details class="settings-block" id="lookPanel">
         <summary>
-          <span class="settings-title">見た目</span>
+          <span class="settings-title" data-i18n="aside.look">見た目</span>
           <span class="settings-hint" id="lookPanelHint">default</span>
         </summary>
-        <label for="themeSelect">テーマ</label>
+        <label for="themeSelect" data-i18n="aside.theme">テーマ</label>
         <select id="themeSelect"></select>
-        <label class="check"><input type="checkbox" id="breakH1" /> 章ごとに改ページ（# が少ないときは ##）</label>
+        <label class="check"><input type="checkbox" id="breakH1" /> <span data-i18n="aside.breakH1">章ごとに改ページ（# が少ないときは ##）</span></label>
       </details>
 
       <details class="settings-block" id="notePanel" open>
         <summary>
-          <span class="settings-title">メモ</span>
-          <span class="settings-hint" id="notePanelHint">正本には書きません</span>
+          <span class="settings-title" data-i18n="aside.note">メモ</span>
+          <span class="settings-hint" id="notePanelHint" data-i18n="aside.noteHint">正本には書きません</span>
         </summary>
-        <p class="aside-note-lead">
-          同じフォルダに <code>*.md-outlet-note.json</code> として保存します（Markdown／データ本体は変更しません）。
+        <p class="aside-note-lead" data-i18n="aside.noteLead">
+          同じフォルダに *.md-outlet-note.json として保存します（Markdown／データ本体は変更しません）。
         </p>
         <textarea
           id="docNote"
           spellcheck="true"
-          placeholder="校正メモ・TODO など（同じフォルダのサイドカーに保存）"
+          data-i18n-placeholder="aside.notePlaceholder" placeholder="校正メモ・TODO など（同じフォルダのサイドカーに保存）"
           disabled
         ></textarea>
       </details>
 
       <details class="settings-block advanced" id="advancedPanel">
-        <summary>詳細設定</summary>
-        <label for="name">設定の名前</label>
+        <summary data-i18n="aside.advanced">詳細設定</summary>
+        <label for="name" data-i18n="aside.metaName">設定の名前</label>
         <input id="name" autocomplete="off" />
-        <label for="description">説明</label>
+        <label for="description" data-i18n="aside.metaDesc">説明</label>
         <input id="description" autocomplete="off" />
-        <label for="savePath">設定ファイルの保存先</label>
+        <label for="savePath" data-i18n="aside.savePath">設定ファイルの保存先</label>
         <input id="savePath" autocomplete="off" />
-        <label for="themeCustom">カスタムテーマのパス</label>
+        <label for="themeCustom" data-i18n="aside.themeCustom">カスタムテーマのパス</label>
         <input id="themeCustom" placeholder="./themes/paper/theme.css" />
-        <label class="check"><input type="checkbox" id="skipFirst" checked /> 最初の見出しでは改ページしない</label>
+        <label class="check"><input type="checkbox" id="skipFirst" checked /> <span data-i18n="aside.skipFirst">最初の見出しでは改ページしない</span></label>
       </details>
       </div>
     </aside>
 
     <section class="editor">
       <div class="pane-bar">
-        <span>Markdown</span>
+        <span data-i18n="editor.label">Markdown</span>
         <div class="tools">
-          <button type="button" id="btnInsertBreak" title="カーソル位置で改ページ">改ページ</button>
-          <button type="button" id="btnInsertKeep" title="選択範囲を同じページにまとめる">まとめて表示</button>
-          <button type="button" id="btnReloadMd" title="ディスクから再読み込み">再読込</button>
-          <button type="button" id="btnMdFind" title="編集内を検索 (Ctrl+Alt+F)">検索</button>
+          <button type="button" id="btnInsertBreak" title="カーソル位置で改ページ" data-i18n="editor.pageBreak" data-i18n-title="editor.pageBreakTitle">改ページ</button>
+          <button type="button" id="btnInsertKeep" title="選択範囲を同じページにまとめる" data-i18n="editor.keepTogether" data-i18n-title="editor.keepTogetherTitle">まとめて表示</button>
+          <button type="button" id="btnReloadMd" title="ディスクから再読み込み" data-i18n="editor.reload" data-i18n-title="editor.reloadTitle">再読込</button>
+          <button type="button" id="btnMdFind" title="編集内を検索 (Ctrl+Alt+F)" data-i18n="editor.find" data-i18n-title="editor.findTitle">検索</button>
           <span id="mdHint">—</span>
         </div>
       </div>
       <div id="mdFindBar" class="md-find-bar" hidden>
-        <label class="log-filter-label" for="mdFindInput">検索</label>
+        <label class="log-filter-label" for="mdFindInput" data-i18n="editor.find">検索</label>
         <input
           id="mdFindInput"
           type="search"
+          data-i18n-placeholder="editor.findPlaceholder"
           placeholder="編集内を検索（Enter で次）"
           autocomplete="off"
           spellcheck="false"
         />
-        <button type="button" id="btnMdFindPrev" title="前へ">↑</button>
-        <button type="button" id="btnMdFindNext" title="次へ">↓</button>
+        <button type="button" id="btnMdFindPrev" title="前へ" data-i18n-title="editor.findPrev">↑</button>
+        <button type="button" id="btnMdFindNext" title="次へ" data-i18n-title="editor.findNext">↓</button>
         <span id="mdFindCount"></span>
-        <button type="button" id="btnMdFindClose" title="閉じる (Esc)">×</button>
+        <button type="button" id="btnMdFindClose" title="閉じる (Esc)" data-i18n-title="editor.findClose">×</button>
       </div>
       <textarea id="mdEditor" spellcheck="false" wrap="off"></textarea>
     </section>
@@ -325,28 +343,28 @@
     <section class="preview">
       <div class="pane-bar">
         <div class="preview-heading">
-          <span class="preview-label">プレビュー：</span>
+          <span class="preview-label" data-i18n="preview.label">プレビュー：</span>
           <span class="preview-path" id="previewPath" title=""></span>
         </div>
         <div class="tools">
-          <button type="button" id="btnNavBack" hidden title="前のファイルまたは履歴へ (Esc)">← 戻る</button>
-          <span id="previewHint">最新</span>
+          <button type="button" id="btnNavBack" hidden title="前のファイルまたは履歴へ (Esc)" data-i18n="preview.back" data-i18n-title="preview.backTitle">← 戻る</button>
+          <span id="previewHint" data-i18n="preview.latest">最新</span>
         </div>
       </div>
       <div class="preview-stage">
         <div id="welcomePanel" class="welcome" hidden>
-          <h2>ファイルを開く</h2>
-          <p class="welcome-lead">最近使った Markdown を選ぶか、メニューから開く／新規作成。.md のドロップは可能なら元の場所で開きます。</p>
-          <p class="hotkey-hint">ショートカット: Ctrl+Alt+E 編集 / Ctrl+Alt+S 保存 / Ctrl+Alt+O 開く / Ctrl+Alt+N 新規 / Ctrl+Alt+W タブを閉じる / Ctrl+Alt+F 検索 / Ctrl+Alt+B 設定パネル / Esc 戻る</p>
+          <h2 data-i18n="welcome.title">ファイルを開く</h2>
+          <p class="welcome-lead" data-i18n="welcome.lead">最近使った Markdown を選ぶか、メニューから開く／新規作成。.md のドロップは可能なら元の場所で開きます。</p>
+          <p class="hotkey-hint" data-i18n="welcome.hotkeys">ショートカット: Ctrl+Alt+E 編集 / Ctrl+Alt+S 保存 / Ctrl+Alt+O 開く / Ctrl+Alt+N 新規 / Ctrl+Alt+W タブを閉じる / Ctrl+Alt+F 検索 / Ctrl+Alt+B 設定パネル / Esc 戻る</p>
           <div class="welcome-actions">
-            <button type="button" class="primary" id="btnWelcomeOpen">開く…</button>
-            <button type="button" id="btnWelcomeNew">新規作成…</button>
+            <button type="button" class="primary" id="btnWelcomeOpen" data-i18n="welcome.open">開く…</button>
+            <button type="button" id="btnWelcomeNew" data-i18n="welcome.new">新規作成…</button>
           </div>
-          <h3>最近のファイル</h3>
+          <h3 data-i18n="welcome.recent">最近のファイル</h3>
           <div class="recent-list" id="recentList" role="list"></div>
         </div>
-        <div id="logFilterBar" aria-label="ログの絞り込み">
-          <label class="log-filter-label" for="logFilterQuery">フィルタ</label>
+        <div id="logFilterBar" aria-label="ログの絞り込み" data-i18n-aria="log.filterAria">
+          <label class="log-filter-label" for="logFilterQuery" data-i18n="log.filter">フィルタ</label>
           <input
             id="logFilterQuery"
             type="search"
@@ -354,13 +372,13 @@
             autocomplete="off"
             spellcheck="false"
           />
-          <div class="log-chips" role="group" aria-label="ログレベル">
+          <div class="log-chips" role="group" aria-label="ログレベル" data-i18n-aria="log.levelsAria">
             <button type="button" class="log-chip" data-level="ERROR" aria-pressed="false">ERROR</button>
             <button type="button" class="log-chip" data-level="WARN" aria-pressed="false">WARN</button>
             <button type="button" class="log-chip" data-level="INFO" aria-pressed="false">INFO</button>
           </div>
           <span id="logFilterCount">一致 — / 全 — 行</span>
-          <button type="button" id="btnLogFilterClear" title="フィルタとレベル選択を解除">クリア</button>
+          <button type="button" id="btnLogFilterClear" title="フィルタとレベル選択を解除" data-i18n="log.clear" data-i18n-title="log.clearTitle">クリア</button>
         </div>
         <iframe id="frame" title="preview"></iframe>
       </div>

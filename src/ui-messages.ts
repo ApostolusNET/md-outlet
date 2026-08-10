@@ -1,25 +1,42 @@
 /**
- * User-facing Japanese copy shared by UI server / handoff / tab logic.
- * Keep wording consistent across API errors, SendTo dialogs, and toasts.
+ * User-facing copy shared by UI server / handoff / tab logic.
+ * Strings come from locales/*.json (default language: ja).
  */
+
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 /** Max open document tabs in the UI (keep in sync with tab logic). */
 export const MAX_UI_TABS = 3;
 
-export const UI_MSG = {
-  tabFull: `タブが上限（${MAX_UI_TABS}）です。不要なタブを閉じてから再度開いてください。`,
-  tabNotFound: (id: string) => `タブが見つかりません: ${id}`,
-  fileNotFound: (path: string) => `ファイルが見つかりません: ${path}`,
-  unsupportedFile: (path: string) =>
-    `対応していないファイルです（.md / .xml / .json / .yaml / .txt / .log / .csv / .tsv）: ${path}`,
-  saveViewOnly: (kindLabel: string) =>
-    `${kindLabel} の保存は未対応です（閲覧のみ）。`,
-  pdfViewOnly: (kindLabel: string) =>
-    `${kindLabel} の PDF 出力は未対応です（閲覧オマケ）。`,
-  noSaveTarget:
-    "保存先がありません。先にファイルを開くか新規作成してください。",
-  portNotUi: (port: number) =>
-    `ポート ${port} は使用中ですが、md-outlet UI ではありません。`,
-  openFailed: "ファイルを開けませんでした",
-  tabSyncFailed: "タブ内容の同期に失敗しました",
-} as const;
+export type UiMsgBag = {
+  tabFull: string;
+  tabNotFound: (id: string) => string;
+  fileNotFound: (path: string) => string;
+  unsupportedFile: (path: string) => string;
+  saveViewOnly: (kindLabel: string) => string;
+  pdfViewOnly: (kindLabel: string) => string;
+  noSaveTarget: string;
+  portNotUi: (port: number) => string;
+  openFailed: string;
+  tabSyncFailed: string;
+};
+
+export function createUiMsg(lang: Lang = DEFAULT_LANG): UiMsgBag {
+  return {
+    tabFull: t(lang, "msg.tabFull", { max: MAX_UI_TABS }),
+    tabNotFound: (id: string) => t(lang, "msg.tabNotFound", { id }),
+    fileNotFound: (path: string) => t(lang, "msg.fileNotFound", { path }),
+    unsupportedFile: (path: string) => t(lang, "msg.unsupportedFile", { path }),
+    saveViewOnly: (kindLabel: string) =>
+      t(lang, "msg.saveViewOnly", { kind: kindLabel }),
+    pdfViewOnly: (kindLabel: string) =>
+      t(lang, "msg.pdfViewOnly", { kind: kindLabel }),
+    noSaveTarget: t(lang, "msg.noSaveTarget"),
+    portNotUi: (port: number) => t(lang, "msg.portNotUi", { port }),
+    openFailed: t(lang, "msg.openFailed"),
+    tabSyncFailed: t(lang, "msg.tabSyncFailed"),
+  };
+}
+
+/** Default Japanese bag (CLI / callers that omit lang). */
+export const UI_MSG: UiMsgBag = createUiMsg(DEFAULT_LANG);

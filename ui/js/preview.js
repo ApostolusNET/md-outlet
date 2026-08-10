@@ -2,6 +2,7 @@
  * Preview iframe + LOG client filter.
  */
 import { $, setStatus } from "./dom.js";
+import { apiFetch, getLang, t } from "./i18n.js";
 
 let api = {};
 export function bindPreview(next) {
@@ -69,15 +70,13 @@ export function updateLogFilterCount(matched, total) {
   const el = $("logFilterCount");
   if (!el) return;
   if (!total && !matched) {
-    el.textContent = "一致 — / 全 — 行";
+    el.textContent = t("log.countIdle");
     return;
   }
-  el.textContent =
-    "一致 " +
-    matched.toLocaleString("ja-JP") +
-    " / 全 " +
-    total.toLocaleString("ja-JP") +
-    " 行";
+  el.textContent = t("log.countFmt", {
+      matched: matched.toLocaleString(getLang() === "en" ? "en-US" : "ja-JP"),
+      total: total.toLocaleString(getLang() === "en" ? "en-US" : "ja-JP"),
+    });
 }
 
 export function renderLogPreview() {
@@ -95,15 +94,15 @@ export function renderLogPreview() {
   });
   const filterNote =
     query.trim() || levels.length
-      ? "フィルタ適用中（元ファイルは変更しません）"
-      : "絞り込み: 上のフィルタ（Ctrl+Alt+F でフォーカス）";
+      ? t("log.filterActive")
+      : t("log.filterHint");
   const report = [
-    "LOG 表示",
-    "ファイル: " + fileLabel,
-    "行数: " + lines.length.toLocaleString("ja-JP"),
+    t("log.bannerTitle"),
+    t("log.fileLabel", { name: fileLabel }),
+    t("log.lineCount", { n: lines.length.toLocaleString(getLang() === "en" ? "en-US" : "ja-JP") }),
     filterNote,
     "",
-    bodyLines.length ? bodyLines.join("\n") : "（一致する行はありません）",
+    bodyLines.length ? bodyLines.join("\n") : t("log.noMatch"),
     "",
   ].join("\n");
 
@@ -119,14 +118,14 @@ export function renderLogPreview() {
     "font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word;" +
     "background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:0.85rem 1rem}" +
     "</style></head><body>" +
-    "<p class=\"banner\">LOG 表示（行番号付き・フィルタ対応） — " +
+    "<p class=\"banner\">" + t("log.htmlBanner") +
     escapeHtml(fileLabel) +
     "</p><pre>" +
     escapeHtml(report) +
     "</pre></body></html>";
 
   $("previewHint").textContent =
-    query.trim() || levels.length ? "フィルタ中" : "スキャン表示";
+    query.trim() || levels.length ? t("log.filtering") : t("hint.preview.scan");
   setFrameSrcdoc(html);
   api.updateHints();
 }
@@ -140,14 +139,14 @@ export function scheduleLogFilterRender() {
 }
 
 export async function refreshPreview() {
-  $("previewHint").textContent = "描画中…";
+  $("previewHint").textContent = t("preview.rendering");
   // LOG: client-side render so the filter bar can re-draw without a round-trip.
   if (api.currentDocKind() === "log") {
     renderLogPreview();
     return;
   }
   try {
-    const res = await fetch("/api/preview", {
+    const res = await apiFetch("/api/preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -163,8 +162,8 @@ export async function refreshPreview() {
       } catch {
         /* keep text */
       }
-      setStatus(msg || "プレビューに失敗しました", "err");
-      $("previewHint").textContent = "エラー";
+      setStatus(msg || t("toast.previewFail"), "err");
+      $("previewHint").textContent = t("preview.error");
       return;
     }
     // iframe srcdoc often fails to resolve root-relative /api/...; keep a base as backup.
@@ -178,7 +177,7 @@ export async function refreshPreview() {
     api.updateHints();
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
-    $("previewHint").textContent = "エラー";
+    $("previewHint").textContent = t("preview.error");
   }
 }
 
@@ -195,7 +194,9 @@ export function previewHotkeyBridgeHtml() {
     "if(e.code&&/^Key[A-Z]$/.test(e.code))return e.code.charAt(3).toLowerCase();" +
     "if(e.key&&e.key.length===1)return e.key.toLowerCase();return '';}" +
     "function park(){try{parent.postMessage({source:'md-outlet-preview',type:'park'},'*');}catch(err){}}" +
-    "document.addEventListener('pointerup',function(){setTimeout(park,0);},true);" +
+    "document.addEventListener('pointerup',function(){setTimeout(function(){" +
+    "try{var s=window.getSelection();if(s&&!s.isCollapsed&&String(s).length)return;}catch(err){}" +
+    "park();},0);},true);" +
     "document.addEventListener('keydown',function(e){" +
     "var mod=(e.ctrlKey||e.metaKey)&&e.altKey;var key=letter(e);" +
     "var app=e.key==='Escape'||(mod&&!e.shiftKey&&(key==='s'||key==='o'||key==='e'||key==='n'||key==='f'||key==='w'));" +
@@ -226,6 +227,13 @@ export function parkKeyboardFocus() {
   const ae = document.activeElement;
   // Only steal focus when it is trapped inside the preview iframe.
   if (!frame || ae !== frame) return;
+  // Keep focus in the iframe while text is selected so Copy (Ctrl+C) works.
+  try {
+    const sel = frame.contentDocument?.getSelection?.();
+    if (sel && !sel.isCollapsed && String(sel).length > 0) return;
+  } catch (_) {
+    /* cross-origin / empty doc */
+  }
   const host = $("kbHost");
   if (host) host.focus({ preventScroll: true });
 }
@@ -285,7 +293,7 @@ export async function openMarkdownFromPreviewLink(href) {
   const fromPath = api.getState()?.mdPath || "";
   try {
     api.rememberActiveDirty();
-    const res = await fetch("/api/open-md-link", {
+    const res = await apiFetch("/api/open-md-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -299,7 +307,7 @@ export async function openMarkdownFromPreviewLink(href) {
     });
     const data = await res.json();
     if (data.skip) {
-      setStatus("このリンクはプレビュー内では開けません: " + href, "err");
+      setStatus(t("toast.linkBlocked", { href }), "err");
       return;
     }
     if (!res.ok || !data.ok) {
@@ -309,7 +317,7 @@ export async function openMarkdownFromPreviewLink(href) {
       }
       api.mergeTabSnapshot(data);
       api.renderTabBar();
-      setStatus(data.error || "リンク先を開けませんでした", "err");
+      setStatus(data.error || t("toast.linkOpenFail"), "err");
       return;
     }
     if (fromPath && data.path && fromPath.toLowerCase() !== String(data.path).toLowerCase()) {
@@ -326,7 +334,7 @@ export async function openMarkdownFromPreviewLink(href) {
       )
     );
     api.updateHints();
-    setStatus("リンクから開きました: " + data.path, "ok");
+    setStatus(t("toast.linkOpened", { path: data.path }), "ok");
     document.body.classList.add("show-editor");
     $("btnToggleEditor").classList.add("active");
     await refreshPreview();

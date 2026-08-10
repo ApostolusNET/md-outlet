@@ -1,14 +1,15 @@
 /**
  * JSON / YAML → human-scannable text report.
  *
- * Goal: 人が中身を追える表示（フォーム再現ではない）。
- * - object → `■ key` + 子
- * - array → `key (i/n)` で列挙
- * - スカラー → `key: value`
- * - パース失敗 → 理由 + 生テキスト
+ * Goal: a readable dump of structure (not a form reconstruction).
+ * - object → `■ key` + children
+ * - array → enumerate as `key (i/n)`
+ * - scalar → `key: value`
+ * - parse failure → reason + raw text
  */
 
 import { parse as parseYaml } from "yaml";
+import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
 
 export type DataKind = "json" | "yaml";
 
@@ -149,7 +150,8 @@ function renderArray(
 export function buildDataScanReport(
   kind: DataKind,
   raw: string,
-  fileLabel: string
+  fileLabel: string,
+  lang: Lang = DEFAULT_LANG
 ): string {
   const label = KIND_LABEL[kind];
   let root: unknown;
@@ -166,10 +168,13 @@ export function buildDataScanReport(
     ].join("\n");
   }
 
+  const reportKey =
+    kind === "json" ? "scan.report.json" : "scan.report.yaml";
   const lines: string[] = [
-    `${label} スキャン表示`,
-    `ファイル: ${fileLabel}`,
-    `ルート: ${describeRoot(root)}`,
+    t(lang, reportKey) || `${label} スキャン表示`,
+    t(lang, "scan.file", { name: fileLabel }) || `ファイル: ${fileLabel}`,
+    t(lang, "scan.root", { name: describeRoot(root) }) ||
+      `ルート: ${describeRoot(root)}`,
     "",
   ];
 
