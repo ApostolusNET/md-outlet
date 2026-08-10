@@ -2,39 +2,36 @@
 
 *Preferences for Markdown output — same source, your paper.*
 
-Markdown を **同じ HTML パイプライン** でプレビューし、そのまま PDF にします。  
-紙面の好みは版管理できるプロファイル（`profile.yaml`）に残します。
+![書いて・見て・PDF に出す画面](docs/assets/ui.jpg)
+
+*左: 紙面設定　中央: Markdown　右: プレビュー（PDF と同じ HTML）*
+
+プレビューと PDF で見た目がズレる——Markdown あるあるです。  
+md-outlet は **同じ HTML パイプライン** で両方を揃え、紙面の好みは版管理できる `profile.yaml` に残します。
 
 **推奨環境:** Windows + 最新 Microsoft Edge（安定版）+ Node 18 LTS  
-**スタートガイド（日本語）:** [docs/START.md](docs/START.md)  
-**サンプル:** [examples/sample.md](examples/sample.md)
+**スタートガイド:** [docs/START.md](docs/START.md) · **サンプル:** [examples/sample.md](examples/sample.md)
 
-| 文書 | 内容 |
-|------|------|
-| [SPEC.md](SPEC.md) | 仕様 |
-| [schemas/profile-v1.json](schemas/profile-v1.json) | プロファイルスキーマ |
-| [LICENSE](LICENSE) | MIT（Copyright © 2026 I.C.A. Co., Ltd.） |
+| 気軽な閲覧（既定） | マニュアル（章ごと改ページ） |
+|:---:|:---:|
+| ![気軽な閲覧](docs/assets/layout-simple.jpg) | ![マニュアル](docs/assets/layout-manual.jpg) |
 
----
-
-## なにが違うか
-
-Markdown はソースとしては強い一方、ツールごとの PDF 見た目がずれやすいです。  
-md-outlet は「見た目」を Markdown の隣に置ける設定（プロファイル）として扱い、プレビューと PDF を同じ経路に揃えます。
+*ひな形を切り替えるだけで、余白や見出し改ページの紙面が変わります。*
 
 ---
 
 ## はじめ方
 
 ```bash
-# md-outlet/ で
+cd md-outlet
 npm install
+npx md-outlet ui          # 引数なし → スタートガイドが開く
+```
 
-# ★ Windows: start-ui.bat をダブルクリック
-# ★ macOS / Linux: ./start-ui.sh（初回だけ chmod +x start-ui.sh）
-# ★ ターミナル: 引数なし → スタートガイドが開く
-npx md-outlet ui
+- **Windows:** `start-ui.bat` をダブルクリックでも同じ  
+- **macOS / Linux:** `./start-ui.sh`（初回だけ `chmod +x start-ui.sh`）
 
+```bash
 # 特定の Markdown を開く
 npx md-outlet ui path/to/notes.md
 
@@ -46,6 +43,12 @@ Windows でエクスプローラーから開く場合は、設置フォルダで
 フォルダを移動・改名したら再実行してください。起動中なら既存 UI にタブ追加されます（最大 3）。
 
 Linux は Docker（Chromium）で CLI／PDF／テスト確認済み。macOS は未確認。
+
+| 文書 | 内容 |
+|------|------|
+| [SPEC.md](SPEC.md) | 仕様 |
+| [schemas/profile-v1.json](schemas/profile-v1.json) | プロファイルスキーマ |
+| [LICENSE](LICENSE) | MIT（Copyright © 2026 I.C.A. Co., Ltd.） |
 
 ---
 
