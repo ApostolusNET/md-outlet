@@ -28,24 +28,30 @@ const cases: {
       '<h1>A</h1><div class="page-break"></div><h1>B</h1><div class="page-break"></div><h1>C</h1>',
     expectInjected: 0,
   },
+  {
+    name: "single H1 + H2 chapters -> fall back to H2",
+    input:
+      "<h1>Title</h1><p>x</p><h2>Ch1</h2><p>y</p><h2>Ch2</h2><p>z</p><h2>Ch3</h2>",
+    expectInjected: 2,
+  },
+  {
+    name: "multi H1 keeps H1 targets (no H2 fallback)",
+    input:
+      "<h1>A</h1><h2>a1</h2><h1>B</h1><h2>b1</h2><h1>C</h1>",
+    expectInjected: 2,
+  },
 ];
-
-const breaks = {
-  beforeHeadings: ["h1"] as const,
-  skipFirst: true,
-  avoidInside: [],
-  avoidAfter: [],
-};
 
 let failed = 0;
 for (const c of cases) {
   const out = injectPageBreaks(c.input, {
-    ...breaks,
     beforeHeadings: ["h1"],
+    skipFirst: true,
     avoidInside: [],
     avoidAfter: [],
   });
-  const injected = (out.match(/md-outlet-page-break/g) ?? []).length -
+  const injected =
+    (out.match(/md-outlet-page-break/g) ?? []).length -
     (c.input.match(/md-outlet-page-break/g) ?? []).length;
   const ok = injected === c.expectInjected;
   if (!ok) failed += 1;

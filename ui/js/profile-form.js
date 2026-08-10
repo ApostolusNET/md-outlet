@@ -17,7 +17,7 @@ const MARGIN_PRESETS = {
 const TEMPLATE_LABELS = {
   "simple-preview": "気軽な閲覧（既定）",
   default: "一般文書",
-  "ops-manual": "マニュアル（章ごと改ページ）",
+  "ops-manual": "マニュアル（章ごと改ページ：#／なければ##）",
 };
 export { TEMPLATE_LABELS };
 
@@ -173,7 +173,7 @@ export function updateSettingsHints() {
       "default";
     const themeShort = api.basenamePath(theme) || theme;
     lookHint.textContent = $("breakH1").checked
-      ? themeShort + " · H1改ページ"
+      ? themeShort + " · 章改ページ"
       : themeShort;
   }
 }

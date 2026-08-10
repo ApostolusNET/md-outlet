@@ -227,7 +227,7 @@ md-outlet ui [input.md] [--profile <name|path>] [-o <save.yaml>] [--port 5760] [
 
 | キー | 型 | 既定 | 説明 |
 |------|----|------|------|
-| `beforeHeadings` | string[] (`h1`〜`h6`) | `[]` | 指定した見出しの直前で改ページ |
+| `beforeHeadings` | string[] (`h1`〜`h6`) | `[]` | 指定した見出しの直前で改ページ。`h1` のみ指定で文書内の `h1` が 2 未満のときは実装が `h2` にフォールバック（単一タイトル＋`##` 章の文書向け） |
 | `skipFirst` | boolean | `true` | 文書先頭の見出しでは改ページしない（表紙用途） |
 | `avoidInside` | string[] | `["pre","table","blockquote"]` | 途中で切らない要素 |
 | `avoidAfter` | string[] | `["h2","h3","h4"]` | 直後で切らない要素（見出しと本文の分離防止） |

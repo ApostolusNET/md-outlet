@@ -1,6 +1,29 @@
 import type { ProfileBreaks, HeadingTag } from "./types.js";
 
 /**
+ * Resolve which heading tags actually get breaks.
+ *
+ * Many Japanese docs use a single `#` title and `##` for chapters
+ * (e.g. docs/START.md). If the profile asks for H1 breaks but the
+ * HTML has fewer than two H1s, treat H2 as the chapter level instead.
+ */
+export function resolveBreakHeadingTags(
+  html: string,
+  breaks: ProfileBreaks
+): HeadingTag[] {
+  const requested = breaks.beforeHeadings;
+  if (requested.length === 0) return [];
+
+  const wantsH1 = requested.includes("h1");
+  const alreadyH2 = requested.includes("h2");
+  if (!wantsH1 || alreadyH2) return [...requested];
+
+  const h1Count = (html.match(/<h1\b/gi) || []).length;
+  if (h1Count < 2) return ["h2"];
+  return [...requested];
+}
+
+/**
  * SPEC-compliant page-break injection.
  *
  * Chromium PDF renderer does not always honor `break-before: page` on
@@ -17,7 +40,7 @@ import type { ProfileBreaks, HeadingTag } from "./types.js";
  *   forces it.
  */
 export function injectPageBreaks(html: string, breaks: ProfileBreaks): string {
-  const targets = new Set<HeadingTag>(breaks.beforeHeadings);
+  const targets = new Set<HeadingTag>(resolveBreakHeadingTags(html, breaks));
   if (targets.size === 0) return html;
 
   const tagPattern = Array.from(targets).join("|");
