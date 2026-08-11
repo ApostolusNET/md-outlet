@@ -48,8 +48,43 @@ function previewScrollRoot(doc) {
 export function captureEditorScrollRatio() {
   const ta = $("mdEditor");
   if (!ta) return lastEditorScrollRatio;
+  // Hidden editor (height 0) has a bogus ratio; keep the last real one.
+  if (ta.clientHeight < 8) return lastEditorScrollRatio;
   lastEditorScrollRatio = getScrollRatio(ta);
   return lastEditorScrollRatio;
+}
+
+/** After loading a file: caret + scroll at the top (avoids jump-to-end on focus). */
+export function resetEditorViewToStart() {
+  const ta = $("mdEditor");
+  if (!ta) return;
+  try {
+    ta.setSelectionRange(0, 0);
+  } catch (_) {
+    /* some inputs reject setSelectionRange */
+  }
+  ta.scrollTop = 0;
+  lastEditorScrollRatio = 0;
+}
+
+/** Restore editor scroll after showing the pane; do not move caret to EOF. */
+export function restoreEditorViewAfterShow() {
+  const ta = $("mdEditor");
+  if (!ta) return;
+  const ratio = lastEditorScrollRatio;
+  try {
+    ta.focus({ preventScroll: true });
+  } catch (_) {
+    ta.focus();
+  }
+  if (ratio <= 0.01) {
+    try {
+      ta.setSelectionRange(0, 0);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  setScrollRatio(ta, ratio);
 }
 
 export function applyPreviewScrollRatio(ratio = lastEditorScrollRatio) {
@@ -79,6 +114,7 @@ export function initPreviewScrollFollow() {
   ta.addEventListener(
     "scroll",
     () => {
+      if ($("mdEditor")?.clientHeight < 8) return;
       if (scrollFollowRaf) return;
       scrollFollowRaf = requestAnimationFrame(() => {
         scrollFollowRaf = 0;
@@ -154,6 +190,10 @@ export function renderLogPreview() {
     "<!DOCTYPE html><html lang=\"" +
     (getLang() === "en" ? "en" : "ja") +
     "\"><head><meta charset=\"utf-8\" />" +
+    "<meta http-equiv=\"Content-Security-Policy\" content=\"" +
+    "default-src 'none'; img-src 'self' data: blob:; style-src 'unsafe-inline'; " +
+    "font-src 'self' data:; base-uri 'self'; form-action 'none'; object-src 'none'; " +
+    "script-src 'none'\" />" +
     "<title>" +
     escapeHtml(fileLabel) +
     "</title><style>" +
@@ -230,11 +270,42 @@ export async function refreshPreview() {
 /**
  * Injected into every preview srcdoc. Forwards app shortcuts to the parent
  * (iframe key events never reach the parent document).
+ * CSP (non-raw) uses script-src 'none'; we mint a nonce so only this bridge runs.
  */
 
-export function previewHotkeyBridgeHtml() {
+function previewBridgeNonce() {
+  try {
+    if (globalThis.crypto?.getRandomValues) {
+      const bytes = new Uint8Array(16);
+      globalThis.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+  } catch (_) {
+    /* fall through */
+  }
+  return `hk${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Upgrade script-src 'none' inside the CSP meta so the hotkey bridge may run. */
+function allowPreviewBridgeInCsp(html, nonce) {
+  // content="..." may contain single quotes ('none'); do not use [^"']*.
+  return html.replace(
+    /<meta\b([^>]*?\bhttp-equiv\s*=\s*["']Content-Security-Policy["'][^>]*?)\bcontent\s*=\s*"([^"]*)"([^>]*)>/gi,
+    (full, pre, content, post) => {
+      if (!/\bscript-src\s+'none'/.test(content)) return full;
+      const next = content.replace(
+        /\bscript-src\s+'none'/g,
+        `script-src 'nonce-${nonce}'`
+      );
+      return `<meta${pre}content="${next}"${post}>`;
+    }
+  );
+}
+
+export function previewHotkeyBridgeHtml(nonce) {
+  const n = nonce ? ` nonce="${nonce}"` : "";
   return (
-    "<script>(function(){" +
+    `<script${n}>(function(){` +
     "if(window.__mdOutletHk)return;window.__mdOutletHk=1;" +
     "function letter(e){" +
     "if(e.code&&/^Key[A-Z]$/.test(e.code))return e.code.charAt(3).toLowerCase();" +
@@ -259,11 +330,13 @@ export function previewHotkeyBridgeHtml() {
 }
 
 export function injectPreviewHotkeyBridge(html) {
-  const bridge = previewHotkeyBridgeHtml();
-  if (/<\/body>/i.test(html)) {
-    return html.replace(/<\/body>/i, bridge + "</body>");
+  const nonce = previewBridgeNonce();
+  const withCsp = allowPreviewBridgeInCsp(html, nonce);
+  const bridge = previewHotkeyBridgeHtml(nonce);
+  if (/<\/body>/i.test(withCsp)) {
+    return withCsp.replace(/<\/body>/i, bridge + "</body>");
   }
-  return html + bridge;
+  return withCsp + bridge;
 }
 
 /** Park keyboard focus in the parent so Ctrl+* hits our handlers, not the browser. */

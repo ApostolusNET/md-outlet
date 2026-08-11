@@ -68,10 +68,24 @@ const saveAsMd = resolve(pkgRoot, "examples", ".tmp-ui-sample-as.md");
 const newMdPath = resolve(pkgRoot, "examples", ".tmp-ui-new.md");
 const sampleMd = resolve(pkgRoot, "examples", "sample.md");
 const recentPath = resolve(pkgRoot, "examples", ".tmp-ui-recent.json");
+const TEST_API_TOKEN = "md-outlet-test-ui-token";
 const recentEnv = {
   ...process.env,
   MD_OUTLET_RECENT_PATH: recentPath,
   MD_OUTLET_NO_AUTO_EXIT: "1",
+  MD_OUTLET_API_TOKEN: TEST_API_TOKEN,
+};
+
+/** Attach session token for /api/* calls (matches server env). */
+const _fetch = globalThis.fetch.bind(globalThis);
+globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = String(input);
+  if (!url.includes("/api/")) return _fetch(input, init);
+  const headers = new Headers(init?.headers);
+  if (!headers.has("X-MD-Outlet-Token")) {
+    headers.set("X-MD-Outlet-Token", TEST_API_TOKEN);
+  }
+  return _fetch(input, { ...init, headers });
 };
 
 let failed = 0;
@@ -438,6 +452,69 @@ try {
       typeof state.activeTabId === "string"
   );
   check("state has docNote field", typeof state.docNote === "string");
+
+  {
+    const badTok = await fetch(`http://127.0.0.1:${port}/api/state`, {
+      headers: { "X-MD-Outlet-Token": "not-the-test-token" },
+    });
+    check("api rejects bad token", badTok.status === 401);
+    const badBody = (await badTok.json()) as { error?: string };
+    check(
+      "api bad token body",
+      typeof badBody.error === "string" && badBody.error.length > 0
+    );
+  }
+
+  {
+    const outsidePath = resolve(pkgRoot, "..", ".tmp-md-outlet-outside-p1.md");
+    if (existsSync(outsidePath)) unlinkSync(outsidePath);
+    const deny = await fetch(`http://127.0.0.1:${port}/api/save-md`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        markdown: "# Outside package (should need confirm)\n",
+        path: outsidePath,
+      }),
+    });
+    const denyBody = (await deny.json()) as {
+      code?: string;
+      needsConfirm?: boolean;
+      path?: string;
+      error?: string;
+    };
+    check("outside package save 409", deny.status === 409, denyBody.error);
+    check(
+      "outside package code",
+      denyBody.code === "OUTSIDE_PACKAGE" && denyBody.needsConfirm === true
+    );
+    const allow = await fetch(`http://127.0.0.1:${port}/api/save-md`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        markdown: "# Outside package confirmed\n",
+        path: outsidePath,
+        confirmOutside: true,
+      }),
+    });
+    const allowBody = (await allow.json()) as {
+      path?: string;
+      error?: string;
+    };
+    check("outside package confirm ok", allow.ok, allowBody.error);
+    check(
+      "outside package wrote file",
+      existsSync(outsidePath) &&
+        readFileSync(outsidePath, "utf8").includes("Outside package confirmed")
+    );
+    if (existsSync(outsidePath)) unlinkSync(outsidePath);
+    // Restore active editor path to the in-package tmp sample.
+    await fetch(`http://127.0.0.1:${port}/api/open-md`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: tmpMd }),
+    });
+  }
+
   {
     const htmlRes = await fetch(`http://127.0.0.1:${port}/`);
     const htmlBody = await htmlRes.text();
@@ -1077,6 +1154,11 @@ try {
       !/[^\x20-\x7E]/.test(disp) &&
       disp.includes("filename*=")
   );
+  {
+    // Browser <img> / tab navigation cannot send X-MD-Outlet-Token.
+    const barePdf = await _fetch(`http://127.0.0.1:${port}/api/pdf`);
+    check("pdf view without token 200", barePdf.ok, String(barePdf.status));
+  }
   if (existsSync(jpPdf)) unlinkSync(jpPdf);
 
   const liveMd = "# Live From Editor\n\nHello **UI** edit pane.\n";
@@ -1092,6 +1174,17 @@ try {
   check("preview 200", previewRes.ok, String(previewRes.status));
   check("preview uses editor md", html.includes("Live From Editor"));
   check("preview renders bold", html.includes("<strong>UI</strong>"));
+  check(
+    "preview csp header blocks script",
+    (previewRes.headers.get("content-security-policy") || "").includes(
+      "script-src 'none'"
+    )
+  );
+  check(
+    "preview csp meta blocks script",
+    html.includes('http-equiv="Content-Security-Policy"') &&
+      html.includes("script-src 'none'")
+  );
 
   const saveMdRes = await fetch(`http://127.0.0.1:${port}/api/save-md`, {
     method: "POST",

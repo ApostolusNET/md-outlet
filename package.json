@@ -1,6 +1,6 @@
 {
   "name": "md-outlet",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Preferences for Markdown output — same source, your paper. Reproducible PDF & preview via versioned profiles.",
   "keywords": [
     "markdown",
@@ -63,7 +63,10 @@
     "test:browser": "tsx scripts/test-browser.ts",
     "gen:heavy-examples": "tsx scripts/gen-heavy-examples.ts",
     "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-release.ps1",
-    "test": "npm run test:schema && npm run test:idempotent && npm run test:overrides && npm run test:frontmatter && npm run test:init && npm run test:ui && npm run test:i18n && npm run test:stability && npm run test:browser"
+    "test:html-mode": "tsx scripts/test-html-mode.ts",
+    "test:path-policy": "tsx scripts/test-path-policy.ts",
+    "audit:deps": "npm audit",
+    "test": "npm run test:schema && npm run test:idempotent && npm run test:overrides && npm run test:frontmatter && npm run test:init && npm run test:html-mode && npm run test:path-policy && npm run test:ui && npm run test:i18n && npm run test:stability && npm run test:browser"
   },
   "dependencies": {
     "ajv": "^8.17.1",

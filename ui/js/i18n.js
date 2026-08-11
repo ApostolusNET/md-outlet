@@ -42,10 +42,27 @@ export function persistLang(lang) {
 }
 
 export function apiHeaders(extra) {
-  return {
+  const headers = {
     "X-MD-Outlet-Lang": currentLang,
     ...(extra || {}),
   };
+  const token = getApiToken();
+  if (token) headers["X-MD-Outlet-Token"] = token;
+  return headers;
+}
+
+let cachedApiToken = "";
+
+function getApiToken() {
+  if (cachedApiToken) return cachedApiToken;
+  try {
+    const el = document.querySelector('meta[name="md-outlet-api-token"]');
+    const v = el && el.getAttribute("content");
+    if (v) cachedApiToken = v;
+  } catch {
+    /* ignore */
+  }
+  return cachedApiToken;
 }
 
 export async function apiFetch(url, opts = {}) {

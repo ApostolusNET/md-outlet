@@ -3,6 +3,7 @@
  */
 import { $, setStatus } from "./dom.js";
 import { apiFetch, t, templateLabel, themeLabel } from "./i18n.js";
+import { postJsonWithOutsideConfirm } from "./outside-write.js";
 
 let api = {};
 export function bindProfileForm(next) {
@@ -212,13 +213,15 @@ export function fillTemplateOptions(builtins, currentRef) {
 
 export async function saveYaml() {
   const savePath = $("savePath").value.trim();
-  const res = await apiFetch("/api/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile: readForm(), savePath }),
+  const { ok, cancelled, data } = await postJsonWithOutsideConfirm("/api/save", {
+    profile: readForm(),
+    savePath,
   });
-  const data = await res.json();
-  if (!res.ok) {
+  if (cancelled) {
+    setStatus(t("toast.writeCancelled"), "ok");
+    return;
+  }
+  if (!ok) {
     setStatus(data.error || t("toast.yamlSaveFail"), "err");
     return;
   }

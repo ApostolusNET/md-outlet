@@ -260,6 +260,8 @@
   "modal.dropSaveAsLead": "Pick a folder and confirm the name. Confirm writes the drop and opens it.",
   "modal.dropSaveConfirm": "Save with this name and open",
   "toast.overwriteConfirm": "A file with this name exists. Overwrite?\n{path}",
+  "toast.outsidePackageConfirm": "This writes outside the md-outlet package. Continue?\n{path}",
+  "toast.writeCancelled": "Write cancelled",
   "toast.dropSavedOpen": "Saved drop and opened: {path}",
   "toast.createdPath": "Created: {path}",
   "toast.pdfSavedBanner": "PDF saved: {name}",

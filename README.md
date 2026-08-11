@@ -192,6 +192,19 @@ theme: ./themes/paper/theme.css
 
 ---
 
+## Security / trust boundary
+
+md-outlet is a **local tool** (UI listens on `127.0.0.1` by default). It is meant for **documents you trust** — your own notes, manuals, and team files.
+
+- **Do not open untrusted Markdown** (email attachments, random downloads, unknown repos) without reviewing the source first. Profiles may allow layout HTML helpers (`allowHtml: true` / `"breaks"` for page-break / keep-together). Use `"raw"` only for fully trusted sources.
+- Preview HTML sets a **Content-Security-Policy** that blocks scripts by default (`script-src 'none'`). Only `allowHtml: "raw"` relaxes script execution for intentional HTML/JS.
+- Each UI start issues a **session API token** (header `X-MD-Outlet-Token`, injected into the page). Optional Origin check allows only loopback on the same port. Override with `MD_OUTLET_API_TOKEN` if needed (tests / automation). `GET /api/asset`, `GET /api/pdf`, and `/api/shutdown` skip the header (`<img>` / tab close `sendBeacon` cannot send it).
+- Request bodies are size-capped; paths/filenames are normalized. Writes **outside the package root** (and outside the open document’s folder) require an explicit confirm. Image/asset paths are sandboxed under the document folder.
+
+Details and design notes: [SPEC.md](SPEC.md).
+
+---
+
 ## Design commitments
 
 Guarantees the implementation aims to keep (details in SPEC):
@@ -210,5 +223,8 @@ npm install
 npm run test:schema   # validate bundled profiles
 npm run smoke         # sample PDF
 npm test              # full suite
+npm audit             # 0 vulnerabilities expected
 npm run cli -- pdf examples/sample.md
 ```
+
+Dependency update policy: [docs/DEPS.md](docs/DEPS.md).

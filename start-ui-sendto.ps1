@@ -9,7 +9,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$UiBase = "http://127.0.0.1:5760"
+$UiPort = 5760
+$UiBase = "http://127.0.0.1:$UiPort"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -LiteralPath $root
@@ -34,9 +35,39 @@ function Fail([string]$Message) {
   exit 1
 }
 
+# Session token written by the running UI (or MD_OUTLET_API_TOKEN).
+function Get-ApiToken {
+  $fromEnv = [string]$env:MD_OUTLET_API_TOKEN
+  if ($fromEnv -and $fromEnv.Trim().Length -gt 0) {
+    return $fromEnv.Trim()
+  }
+  $tokenFile = Join-Path $env:TEMP "md-outlet-ui-$UiPort.token"
+  if (-not (Test-Path -LiteralPath $tokenFile)) { return $null }
+  try {
+    $t = (Get-Content -LiteralPath $tokenFile -Raw -ErrorAction Stop).Trim()
+    if ($t.Length -gt 0) { return $t }
+  } catch { }
+  return $null
+}
+
+function Get-ApiHeaders {
+  $headers = @{
+    "Accept" = "application/json"
+  }
+  $token = Get-ApiToken
+  if ($token) {
+    $headers["X-MD-Outlet-Token"] = $token
+  }
+  return $headers
+}
+
 function Test-ExistingUi {
   try {
-    $res = Invoke-WebRequest -Uri "$UiBase/api/state" -UseBasicParsing -TimeoutSec 2
+    $res = Invoke-WebRequest `
+      -Uri "$UiBase/api/state" `
+      -Headers (Get-ApiHeaders) `
+      -UseBasicParsing `
+      -TimeoutSec 2
     if ($res.StatusCode -ne 200) { return $false }
     $state = $res.Content | ConvertFrom-Json
     if ($null -ne $state.tabMax) { return $true }
@@ -66,6 +97,7 @@ function Get-HttpErrorMessage([System.Exception]$Ex) {
 }
 
 # Best-effort: bring an existing browser window titled "md-outlet" forward.
+# Returns $true when a window was activated.
 function Wake-MdOutletWindow {
   try {
     $shell = New-Object -ComObject WScript.Shell
@@ -75,12 +107,15 @@ function Wake-MdOutletWindow {
         $_.MainWindowTitle -match 'md-outlet'
       }
     foreach ($p in $candidates) {
-      if ($shell.AppActivate($p.Id)) { return }
-      if ($p.MainWindowTitle -and $shell.AppActivate($p.MainWindowTitle)) { return }
+      if ($shell.AppActivate($p.Id)) { return $true }
+      if ($p.MainWindowTitle -and $shell.AppActivate($p.MainWindowTitle)) {
+        return $true
+      }
     }
   } catch {
     # OS / browser may ignore; UI still polls and blinks its title.
   }
+  return $false
 }
 
 # Open path in running UI (or just focus). Exits process on success.
@@ -98,16 +133,34 @@ function Invoke-HandoffOrContinue([string]$Path) {
         -Method POST `
         -Body $bytes `
         -ContentType "application/json; charset=utf-8" `
+        -Headers (Get-ApiHeaders) `
         -UseBasicParsing `
         -TimeoutSec 10
     } catch {
-      Fail (Get-HttpErrorMessage $_.Exception)
+      $detail = Get-HttpErrorMessage $_.Exception
+      if ($detail -match 'Unauthorized' -or $detail -match '401') {
+        Fail ("既存の UI に接続できません（API トークン）。`n" +
+          "ブラウザの md-outlet タブを閉じてから、もう一度「送る」してください。`n" +
+          "($detail)")
+      }
+      # Tab full / unsupported: show error and still wake the UI so the toast is visible.
+      if (-not (Wake-MdOutletWindow)) {
+        try { Start-Process $UiBase } catch { }
+      }
+      Fail $detail
     }
   }
 
-  # Do not Start-Process the URL — that often opens a second browser tab.
-  # Nudge the existing browser window; the page also polls /api/state.
-  Wake-MdOutletWindow
+  # Server may still be running after the browser tab was closed (zombie UI).
+  # If we cannot find an md-outlet window, open the URL so the user sees it.
+  if (-not (Wake-MdOutletWindow)) {
+    try {
+      Start-Process $UiBase
+    } catch {
+      Fail ("ファイルは既存 UI に渡せましたが、ブラウザを開けませんでした。`n" +
+        "手動で開いてください: $UiBase`n($($_.Exception.Message))")
+    }
+  }
   exit 0
 }
 
@@ -153,7 +206,18 @@ if ($target) {
 $code = $LASTEXITCODE
 if ($null -eq $code) { $code = 0 }
 
-if ($code -ne 0) {
-  Fail "Exit code $code"
+# 0 = clean UI shutdown. 1 / Ctrl+C / task-kill are also "stopped", not a launch failure.
+# (Hidden SendTo must not pop an error box after the process is ended.)
+$stoppedOk = @(0, 1, -1073741510, 3221225786)
+if ($stoppedOk -contains [int]$code) {
+  exit 0
 }
-exit 0
+
+# 0xC0000409 / -1073740791 = STATUS_STACK_BUFFER_OVERRUN (Node crash on some Windows setups)
+$abs = [Math]::Abs([int64]$code)
+if ($code -eq -1073740791 -or $abs -eq 1073740791 -or $code -eq 3221226505) {
+  Fail ("md-outlet の起動に失敗しました（Node 異常終了）。`n" +
+    "start-ui.bat から起動できるか確認し、できなければ Node.js LTS の再インストールを試してください。`n" +
+    "Exit code $code")
+}
+Fail "Exit code $code"

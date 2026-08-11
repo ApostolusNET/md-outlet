@@ -260,6 +260,8 @@
   "modal.dropSaveAsLead": "保存先フォルダを選び、ファイル名を確認してください。確定するとドロップ内容を書き出して開きます。",
   "modal.dropSaveConfirm": "この名前で保存して開く",
   "toast.overwriteConfirm": "同じ名前のファイルがあります。上書きしますか？\n{path}",
+  "toast.outsidePackageConfirm": "md-outlet パッケージ外への書き込みです。続行しますか？\n{path}",
+  "toast.writeCancelled": "書き込みをキャンセルしました",
   "toast.dropSavedOpen": "ドロップ内容を保存して開きました: {path}",
   "toast.createdPath": "新規作成しました: {path}",
   "toast.pdfSavedBanner": "PDF を保存しました: {name}",

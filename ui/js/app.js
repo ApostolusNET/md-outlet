@@ -9,7 +9,6 @@ import {
 import {
   bindNotes,
   applyDocNoteFromPayload,
-  flushDocNoteIfNeeded,
   scheduleSaveDocNote,
   updateNotePanelHint,
 } from "./notes.js";
@@ -17,18 +16,12 @@ import {
   bindTabs,
   renderTabBar,
   pullExternalTabChanges,
-  runSwitchTab,
   runCloseTab,
   rememberActiveDirty,
   pruneTabDirty,
   mergeTabSnapshot,
-  computeTabSig,
   rememberTabSigFrom,
-  pulseTabBar,
-  flashDocumentTitle,
   noteUiFlashId,
-  consumeUiFlash,
-  syncActiveEditorToServer,
 } from "./tabs.js";
 import {
   bindBrowse,
@@ -61,36 +54,33 @@ import {
 import {
   bindPreview,
   initPreviewScrollFollow,
+  parkKeyboardFocus,
   refreshPreview,
   schedulePreview,
   resetLogFilterControls,
   scheduleLogFilterRender,
   renderLogPreview,
+  resetEditorViewToStart,
+  restoreEditorViewAfterShow,
 } from "./preview.js";
 
-let state = null;
-let timer = null;
-let dirtyProfile = false;
-let dirtyMd = false;
-/** Per-tab unsaved flag (id → boolean). Active tab mirrors dirtyMd. */
-const tabDirtyById = Object.create(null);
-let tabSwitchBusy = false;
-/** Detect SendTo / CLI handoff that changed tabs on the server. */
-let lastTabSig = "";
-let tabPullBusy = false;
-let lastFlashId = 0;
-let titleFlashTimer = null;
-const defaultDocTitle = document.title || "md-outlet ui";
-let lastPdfPath = null;
-let defaultPdfPath = "";
-/** Previous Markdown paths for preview Back (link navigation). */
-let mdNavStack = [];
-let dirtyConfirmResolver = null;
+import {
+  app,
+  syncDirtyMdFromActiveTab,
+  markActiveTabClean,
+  ensureActiveTabDirtyFlag,
+  DATA_DOC_KINDS,
+  detectKindFromPath,
+  currentDocKind,
+  isDataDoc,
+  dataDocLabel as dataDocLabelFromKind,
+  pushMdNavPath,
+  clearMdNavStackData,
+  popMdNavPath,
+  createModuleApi,
+} from "./app-state.js";
+import { postJsonWithOutsideConfirm } from "./outside-write.js";
 
-/** Pending drop import awaiting overwrite / save-as choice. */
-let pendingDrop = null;
-/** new-md modal purpose: create | drop-save */
-let newMdMode = "create";
 
 function hideExportBanner() {
   const banner = $("exportBanner");
@@ -124,7 +114,7 @@ function openPdfInBrowser() {
 
 function updateHints() {
   const mdHint = $("mdHint");
-  if (!state?.mdPath) {
+  if (!app.state?.mdPath) {
     mdHint.textContent = t("hint.md.none");
     mdHint.classList.remove("dirty", "saved");
     mdHint.classList.add("idle");
@@ -139,47 +129,17 @@ function updateHints() {
     $("previewHint").textContent = t("hint.preview.scan");
     return;
   }
-  mdHint.textContent = dirtyMd ? t("preview.unsaved") : t("hint.md.saved");
-  mdHint.classList.toggle("dirty", dirtyMd);
-  mdHint.classList.toggle("saved", !dirtyMd);
+  mdHint.textContent = app.dirtyMd ? t("preview.unsaved") : t("hint.md.saved");
+  mdHint.classList.toggle("dirty", app.dirtyMd);
+  mdHint.classList.toggle("saved", !app.dirtyMd);
   $("previewHint").textContent =
-    dirtyProfile || dirtyMd ? t("hint.preview.pending") : t("preview.latest");
-}
-
-const DATA_DOC_KINDS = ["xml", "json", "yaml", "txt", "log", "csv"];
-
-function detectKindFromPath(p) {
-  const s = String(p || "");
-  if (/\.xml$/i.test(s)) return "xml";
-  if (/\.json$/i.test(s)) return "json";
-  if (/\.ya?ml$/i.test(s)) return "yaml";
-  if (/\.(csv|tsv)$/i.test(s)) return "csv";
-  if (/\.log$/i.test(s)) return "log";
-  if (/\.txt$/i.test(s)) return "txt";
-  if (/\.(md|markdown)$/i.test(s)) return "md";
-  return "unknown";
-}
-
-function currentDocKind() {
-  const k = state?.fileKind;
-  if (k && k !== "unknown") return k;
-  return detectKindFromPath(state?.mdPath);
-}
-
-function isDataDoc() {
-  return DATA_DOC_KINDS.includes(currentDocKind());
+    app.dirtyProfile || app.dirtyMd ? t("hint.preview.pending") : t("preview.latest");
 }
 
 function dataDocLabel() {
-  const k = currentDocKind();
-  if (k === "xml") return "XML";
-  if (k === "json") return "JSON";
-  if (k === "yaml") return "YAML";
-  if (k === "txt") return "TXT";
-  if (k === "log") return "LOG";
-  if (k === "csv") return "CSV";
-  return t("label.data");
+  return dataDocLabelFromKind(t);
 }
+
 
 function updateDocModeUi() {
   const data = isDataDoc();
@@ -206,15 +166,6 @@ function updateDocModeUi() {
   }
 }
 
-/** LOG filter UI state (display only — never writes the file). */
-
-
-
-
-
-
-
-
 
 function basenamePath(p) {
   const s = String(p || "");
@@ -224,40 +175,35 @@ function basenamePath(p) {
 
 function updateNavBackButton() {
   const btn = $("btnNavBack");
-  const hasFile = Boolean(state?.mdPath);
+  const hasFile = Boolean(app.state?.mdPath);
   btn.hidden = !hasFile;
   if (!hasFile) return;
-  btn.textContent = mdNavStack.length ? t("nav.backFile") : t("nav.backHistory");
-  btn.title = mdNavStack.length
+  btn.textContent = app.mdNavStack.length ? t("nav.backFile") : t("nav.backHistory");
+  btn.title = app.mdNavStack.length
     ? t("nav.backFileTitle")
     : t("nav.backHistoryTitle");
 }
 
 function clearMdNavStack() {
-  mdNavStack = [];
+  clearMdNavStackData();
   updateNavBackButton();
 }
 
 function pushMdNav(fromPath) {
-  const p = String(fromPath || "").trim();
-  if (!p) return;
-  const top = mdNavStack[mdNavStack.length - 1];
-  if (top && top.toLowerCase() === p.toLowerCase()) return;
-  mdNavStack.push(p);
-  if (mdNavStack.length > 40) mdNavStack.shift();
-  updateNavBackButton();
+  if (pushMdNavPath(fromPath)) updateNavBackButton();
 }
+
 
 function askDirtyMd(actionLabel) {
   return new Promise((resolve) => {
-    if (!dirtyMd) {
+    if (!app.dirtyMd) {
       resolve("ok");
       return;
     }
-    dirtyConfirmResolver = resolve;
+    app.dirtyConfirmResolver = resolve;
     const name =
-      basenamePath(state?.mdPath || "") ||
-      (state?.activeTabId ? t("label.thisTab") : t("label.thisFile"));
+      basenamePath(app.state?.mdPath || "") ||
+      (app.state?.activeTabId ? t("label.thisTab") : t("label.thisFile"));
     const action =
       actionLabel && String(actionLabel).startsWith("action.")
         ? t(actionLabel)
@@ -275,8 +221,7 @@ async function ensureMdClean(actionLabel) {
   const choice = await askDirtyMd(actionLabel);
   if (choice === "cancel") return false;
   if (choice === "discard") {
-    dirtyMd = false;
-    if (state?.activeTabId) tabDirtyById[state.activeTabId] = false;
+    markActiveTabClean();
     updateHints();
     renderTabBar();
     return true;
@@ -288,36 +233,10 @@ async function ensureMdClean(actionLabel) {
   return true;
 }
 
-
-
-
-
-
-
-
-
-
-/** Ignore flashes this page already handled (including its own /api/tabs/open). */
-
-/** Server flash from SendTo / CLI (works even when tab set did not change — e.g. 409). */
-
-/**
- * Pick up tabs / notices from SendTo / second CLI without opening a new browser tab.
- * Also runs while the tab is in the background (title blink / desktop notify).
- */
-
-
-
-
-
-/** Keep server tab text in sync with the editor (does not change active tab). */
-
-
-
 function closeDirtyModal(choice) {
   $("dirtyModal").hidden = true;
-  const resolve = dirtyConfirmResolver;
-  dirtyConfirmResolver = null;
+  const resolve = app.dirtyConfirmResolver;
+  app.dirtyConfirmResolver = null;
   if (resolve) resolve(choice);
 }
 
@@ -395,8 +314,8 @@ async function removeRecentEntry(path) {
       setStatus(data.error || t("toast.recentRemoveFail"), "err");
       return;
     }
-    if (state) state.recent = data.recent || [];
-    renderRecentList(state?.recent || []);
+    if (app.state) app.state.recent = data.recent || [];
+    renderRecentList(app.state?.recent || []);
     setStatus(t("toast.recentRemoved"), "ok");
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
@@ -415,8 +334,8 @@ async function toggleRecentPin(path, pinned) {
       setStatus(data.error || t("toast.pinFail"), "err");
       return;
     }
-    if (state) state.recent = data.recent || [];
-    renderRecentList(state?.recent || []);
+    if (app.state) app.state.recent = data.recent || [];
+    renderRecentList(app.state?.recent || []);
     setStatus(pinned ? t("toast.pinned") : t("toast.unpinned"), "ok");
   } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "err");
@@ -424,10 +343,10 @@ async function toggleRecentPin(path, pinned) {
 }
 
 function updateWelcomePanel() {
-  const empty = !state?.mdPath;
+  const empty = !app.state?.mdPath;
   $("welcomePanel").hidden = !empty;
   if (empty) {
-    renderRecentList(state?.recent || []);
+    renderRecentList(app.state?.recent || []);
     $("frame").srcdoc = "";
     clearMdNavStack();
   }
@@ -548,30 +467,31 @@ function fillHelpMenu(library) {
 }
 
 function applyStatePayload(data) {
-  state = data;
-  if (!state.fileKind && state.mdPath) {
-    state.fileKind = detectKindFromPath(state.mdPath);
+  app.state = data;
+  if (!app.state.fileKind && app.state.mdPath) {
+    app.state.fileKind = detectKindFromPath(app.state.mdPath);
   }
-  if (!Array.isArray(state.tabs)) state.tabs = [];
+  if (!Array.isArray(app.state.tabs)) app.state.tabs = [];
   pruneTabDirty();
   $("savePath").value = data.savePath;
-  if (!defaultPdfPath) defaultPdfPath = data.pdfOutputPath || "";
+  if (!app.defaultPdfPath) app.defaultPdfPath = data.pdfOutputPath || "";
   updateActivePath(data.mdPath, data.profileRef);
   fillTemplateOptions(data.builtins, data.profileRef);
   fillHelpMenu(data.library);
   fillForm(data.profile);
   if (typeof data.markdown === "string") {
     $("mdEditor").value = data.markdown;
-    dirtyMd = Boolean(
-      state.activeTabId && tabDirtyById[state.activeTabId]
+    resetEditorViewToStart();
+    app.dirtyMd = Boolean(
+      app.state.activeTabId && app.tabDirtyById[app.state.activeTabId]
     );
   }
-  dirtyProfile = false;
+  app.dirtyProfile = false;
   updateDocModeUi();
   updateWelcomePanel();
   updateHints();
   renderTabBar();
-  rememberTabSigFrom(state);
+  rememberTabSigFrom(app.state);
   applyDocNoteFromPayload(data);
 }
 
@@ -659,10 +579,7 @@ function toggleEditor() {
   $("btnToggleEditor").classList.toggle("active", on);
   $("mdMenu").open = false;
   if (on) {
-    const ed = $("mdEditor");
-    setTimeout(() => {
-      ed.focus();
-    }, 0);
+    requestAnimationFrame(() => restoreEditorViewAfterShow());
   }
 }
 
@@ -684,7 +601,7 @@ function closeMdModal() {
 }
 
 function openMdModal() {
-  const path = state?.mdPath || t("label.unset");
+  const path = app.state?.mdPath || t("label.unset");
   $("mdModalOverwritePath").textContent = path;
   $("mdModalStepSave").hidden = false;
   $("mdModalStepAs").hidden = true;
@@ -692,7 +609,7 @@ function openMdModal() {
 }
 
 function suggestMdSaveAsPath() {
-  const base = state?.mdPath || "./document.md";
+  const base = app.state?.mdPath || "./document.md";
   return String(base).replace(/\.md$/i, "") + "-copy.md";
 }
 
@@ -722,30 +639,32 @@ async function runSaveMd(outputPath, opts) {
   try {
     const body = { markdown: $("mdEditor").value };
     if (outputPath) body.path = outputPath;
-    const res = await apiFetch("/api/save-md", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) {
+    const { ok, cancelled, data } = await postJsonWithOutsideConfirm(
+      "/api/save-md",
+      body
+    );
+    if (cancelled) {
+      setStatus(t("toast.writeCancelled"), "ok");
+      return false;
+    }
+    if (!ok) {
       setStatus(data.error || t("toast.mdSaveFail"), "err");
       return false;
     }
-    dirtyMd = false;
-    if (state) {
-      state.mdPath = data.path;
-      state.empty = !data.path;
-      if (Array.isArray(data.recent)) state.recent = data.recent;
+    app.dirtyMd = false;
+    if (app.state) {
+      app.state.mdPath = data.path;
+      app.state.empty = !data.path;
+      if (Array.isArray(data.recent)) app.state.recent = data.recent;
       if (data.pdfOutputPath) {
-        state.pdfOutputPath = data.pdfOutputPath;
-        defaultPdfPath = data.pdfOutputPath;
-        lastPdfPath = null;
+        app.state.pdfOutputPath = data.pdfOutputPath;
+        app.defaultPdfPath = data.pdfOutputPath;
+        app.lastPdfPath = null;
       }
       mergeTabSnapshot(data);
-      if (state.activeTabId) tabDirtyById[state.activeTabId] = false;
+      markActiveTabClean();
     }
-    updateActivePath(data.path, state?.profileRef);
+    updateActivePath(data.path, app.state?.profileRef);
     updateWelcomePanel();
     updateHints();
     renderTabBar();
@@ -767,41 +686,35 @@ async function runSaveMd(outputPath, opts) {
   }
 }
 
-function ensureState() {
-  if (!state) state = {};
-  return state;
-}
-
 function applyActiveMarkdown(data) {
-  if (!state) state = {};
+  if (!app.state) app.state = {};
   const path = data.path !== undefined ? data.path : data.mdPath;
-  state.mdPath = path;
-  state.empty = !path;
-  state.fileKind =
+  app.state.mdPath = path;
+  app.state.empty = !path;
+  app.state.fileKind =
     data.fileKind ||
     (path ? detectKindFromPath(path) : "unknown");
-  if (Array.isArray(data.recent)) state.recent = data.recent;
+  if (Array.isArray(data.recent)) app.state.recent = data.recent;
   if (data.pdfOutputPath) {
-    state.pdfOutputPath = data.pdfOutputPath;
-    defaultPdfPath = data.pdfOutputPath;
-    lastPdfPath = null;
-  } else if (DATA_DOC_KINDS.includes(state.fileKind)) {
-    state.pdfOutputPath = "";
-    defaultPdfPath = "";
+    app.state.pdfOutputPath = data.pdfOutputPath;
+    app.defaultPdfPath = data.pdfOutputPath;
+    app.lastPdfPath = null;
+  } else if (DATA_DOC_KINDS.includes(app.state.fileKind)) {
+    app.state.pdfOutputPath = "";
+    app.defaultPdfPath = "";
   }
   mergeTabSnapshot(data);
   if (typeof data.markdown === "string") {
     $("mdEditor").value = data.markdown;
+    resetEditorViewToStart();
   }
-  dirtyMd = Boolean(
-    state?.activeTabId && tabDirtyById[state.activeTabId]
-  );
-  updateActivePath(state?.mdPath, state?.profileRef);
+  syncDirtyMdFromActiveTab();
+  updateActivePath(app.state?.mdPath, app.state?.profileRef);
   updateDocModeUi();
   updateWelcomePanel();
   updateHints();
   renderTabBar();
-  rememberTabSigFrom(state);
+  rememberTabSigFrom(app.state);
   applyDocNoteFromPayload({
     ...data,
     mdPath: path,
@@ -810,7 +723,7 @@ function applyActiveMarkdown(data) {
 
 async function runCloseMd() {
   closeHeaderMenus();
-  if (!state?.mdPath) {
+  if (!app.state?.mdPath) {
     updateWelcomePanel();
     setStatus(t("toast.alreadyEmpty"), "ok");
     return;
@@ -831,8 +744,8 @@ async function runCloseMd() {
     applyStatePayload(data);
     document.body.classList.remove("show-editor");
     $("btnToggleEditor").classList.remove("active");
-    lastPdfPath = null;
-    defaultPdfPath = "";
+    app.lastPdfPath = null;
+    app.defaultPdfPath = "";
     hideExportBanner();
     setStatus(t("toast.closed"), "ok");
   } catch (e) {
@@ -844,10 +757,10 @@ async function runCloseMd() {
 }
 
 async function runNavBack() {
-  if (!state?.mdPath) return;
+  if (!app.state?.mdPath) return;
   if (!(await ensureMdClean("action.back"))) return;
-  if (mdNavStack.length) {
-    const prev = mdNavStack.pop();
+  if (app.mdNavStack.length) {
+    const prev = popMdNavPath();
     updateNavBackButton();
     await runOpenMd(prev, { skipDirtyConfirm: true, nav: "back" });
     return;
@@ -874,8 +787,8 @@ async function runOpenMd(requestedPath, opts) {
     const data = await res.json();
     noteUiFlashId(data);
     if (!res.ok) {
-      if (Array.isArray(data.recent) && state) {
-        state.recent = data.recent;
+      if (Array.isArray(data.recent) && app.state) {
+        app.state.recent = data.recent;
         updateWelcomePanel();
       }
       mergeTabSnapshot(data);
@@ -885,14 +798,12 @@ async function runOpenMd(requestedPath, opts) {
     }
     if (options.nav === "replace") clearMdNavStack();
     applyActiveMarkdown(data);
-    if (state?.activeTabId && tabDirtyById[state.activeTabId] == null) {
-      tabDirtyById[state.activeTabId] = false;
-    }
-    dirtyMd = Boolean(state?.activeTabId && tabDirtyById[state.activeTabId]);
+    ensureActiveTabDirtyFlag();
+    syncDirtyMdFromActiveTab();
     updateHints();
     renderTabBar();
     updateNavBackButton();
-    const kind = data.fileKind || state?.fileKind;
+    const kind = data.fileKind || app.state?.fileKind;
     const isData = DATA_DOC_KINDS.includes(kind);
     setStatus(
       isData
@@ -925,19 +836,19 @@ function closeNewMdModalKeepPending() {
 }
 
 function closeNewMdModal() {
-  const wasDropSave = newMdMode === "drop-save";
+  const wasDropSave = app.newMdMode === "drop-save";
   $("newMdModal").hidden = true;
   if (wasDropSave) {
-    pendingDrop = null;
+    app.pendingDrop = null;
     setStatus(t("toast.dropCancel"), "ok");
   }
-  newMdMode = "create";
+  app.newMdMode = "create";
   $("newMdModalTitle").textContent = "New Markdown";
   $("btnNewMdConfirm").textContent = t("common.create");
 }
 
 function suggestNewMdPath() {
-  const base = state?.mdPath || "./untitled.md";
+  const base = app.state?.mdPath || "./untitled.md";
   const dirMatch = String(base).match(/^(.*[/\\])/);
   const dir = dirMatch ? dirMatch[1] : "./";
   return dir + "untitled.md";
@@ -945,19 +856,19 @@ function suggestNewMdPath() {
 
 async function openNewMdModal(opts) {
   const options = opts || {};
-  newMdMode = options.mode === "drop-save" ? "drop-save" : "create";
+  app.newMdMode = options.mode === "drop-save" ? "drop-save" : "create";
   const pathValue =
     options.pathValue != null ? options.pathValue : suggestNewMdPath();
   $("newMdModalTitle").textContent =
-    newMdMode === "drop-save"
+    app.newMdMode === "drop-save"
       ? t("modal.dropSaveAsTitle")
       : "New Markdown";
   $("newMdModalLead").textContent =
-    newMdMode === "drop-save"
+    app.newMdMode === "drop-save"
       ? t("modal.dropSaveAsLead")
       : t("modal.newLead");
   $("btnNewMdConfirm").textContent =
-    newMdMode === "drop-save" ? t("modal.dropSaveConfirm") : t("common.create");
+    app.newMdMode === "drop-save" ? t("modal.dropSaveConfirm") : t("common.create");
   $("newMdPathInput").value = pathValue;
   $("newMdModal").hidden = false;
   try {
@@ -975,7 +886,7 @@ async function openNewMdModal(opts) {
 
 async function runNewMd(requestedPath, force, opts) {
   const options = opts || {};
-  const fromDrop = Boolean(options.fromDrop) || newMdMode === "drop-save";
+  const fromDrop = Boolean(options.fromDrop) || app.newMdMode === "drop-save";
   if (!force && !options.skipDirtyConfirm) {
     if (!(await ensureMdClean("action.new"))) return;
   }
@@ -990,18 +901,20 @@ async function runNewMd(requestedPath, force, opts) {
       force: Boolean(force),
     };
     if (fromDrop) {
-      if (!pendingDrop || typeof pendingDrop.markdown !== "string") {
+      if (!app.pendingDrop || typeof app.pendingDrop.markdown !== "string") {
         setStatus(t("toast.dropEmpty"), "err");
         return;
       }
-      body.markdown = pendingDrop.markdown;
+      body.markdown = app.pendingDrop.markdown;
     }
-    const res = await apiFetch("/api/new-md", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
+    const { ok, cancelled, res, data } = await postJsonWithOutsideConfirm(
+      "/api/new-md",
+      body
+    );
+    if (cancelled) {
+      setStatus(t("toast.writeCancelled"), "ok");
+      return;
+    }
     if (res.status === 409 && data.exists) {
       if (
         confirm(
@@ -1021,12 +934,12 @@ async function runNewMd(requestedPath, force, opts) {
       }
       return;
     }
-    if (!res.ok) {
+    if (!ok) {
       setStatus(data.error || t("toast.newFail"), "err");
       return;
     }
-    pendingDrop = null;
-    newMdMode = "create";
+    app.pendingDrop = null;
+    app.newMdMode = "create";
     clearMdNavStack();
     applyActiveMarkdown(data);
     updateNavBackButton();
@@ -1048,7 +961,7 @@ async function runNewMd(requestedPath, force, opts) {
 }
 
 function overwritePdfPath() {
-  return lastPdfPath || defaultPdfPath || state?.pdfOutputPath || "";
+  return app.lastPdfPath || app.defaultPdfPath || app.state?.pdfOutputPath || "";
 }
 
 function suggestSaveAsPath() {
@@ -1102,17 +1015,21 @@ async function runExportPdf(outputPath) {
   });
   const viewer = window.open("about:blank", "_blank");
   try {
-    const res = await apiFetch("/api/export-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const { ok, cancelled, data } = await postJsonWithOutsideConfirm(
+      "/api/export-pdf",
+      {
         profile: readForm(),
         markdown: $("mdEditor").value,
         outputPath: outputPath,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
+      }
+    );
+    if (cancelled) {
+      if (viewer) viewer.close();
+      hideExportBanner();
+      setStatus(t("toast.writeCancelled"), "ok");
+      return;
+    }
+    if (!ok) {
       if (viewer) viewer.close();
       setStatus(data.error || t("toast.pdfFail"), "err");
       showExportBanner({
@@ -1123,8 +1040,8 @@ async function runExportPdf(outputPath) {
       });
       return;
     }
-    lastPdfPath = data.path;
-    defaultPdfPath = data.path;
+    app.lastPdfPath = data.path;
+    app.defaultPdfPath = data.path;
     const fileName = String(data.path || "").split(/[/\\]/).pop() || "PDF";
     setStatus(t("toast.pdfSaved", { path: data.path }), "ok");
     showExportBanner({
@@ -1167,8 +1084,8 @@ async function reloadMd() {
     return;
   }
   $("mdEditor").value = data.markdown || "";
-  dirtyMd = false;
-  if (state?.activeTabId) tabDirtyById[state.activeTabId] = false;
+  resetEditorViewToStart();
+  markActiveTabClean();
   updateHints();
   renderTabBar();
   applyDocNoteFromPayload(data);
@@ -1198,7 +1115,7 @@ function closeDropOpenModal() {
 function cancelPendingDrop(msg) {
   closeDropOpenModal();
   closeDropConflictModal();
-  pendingDrop = null;
+  app.pendingDrop = null;
   if (msg) setStatus(msg, "ok");
 }
 
@@ -1213,15 +1130,15 @@ function suggestCopyPath(p) {
 function dirOfPath(p) {
   const s = String(p || "");
   const slash = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
-  return slash > 0 ? s.slice(0, slash) : state?.workspaceRoot || "";
+  return slash > 0 ? s.slice(0, slash) : app.state?.workspaceRoot || "";
 }
 
 async function openDropSaveAsBrowse() {
   closeDropConflictModal();
-  if (!pendingDrop) return;
-  const conflict = pendingDrop.conflictPath || "";
+  if (!app.pendingDrop) return;
+  const conflict = app.pendingDrop.conflictPath || "";
   const suggested = suggestCopyPath(
-    conflict || pendingDrop.name || "dropped.md"
+    conflict || app.pendingDrop.name || "dropped.md"
   );
   await openNewMdModal({
     mode: "drop-save",
@@ -1268,7 +1185,7 @@ function extractDroppedPathHint(dt, file) {
 }
 
 async function openResolvedDropPath(path) {
-  pendingDrop = null;
+  app.pendingDrop = null;
   closeDropOpenModal();
   await runOpenMd(path, { skipDirtyConfirm: true, nav: "replace" });
 }
@@ -1311,7 +1228,7 @@ function showDropNoPathModal() {
   $("dropOpenLead").textContent =
     t("drop.unresolvedLead");
   $("dropOpenPath").hidden = false;
-  $("dropOpenPath").textContent = pendingDrop?.name || t("label.unknown");
+  $("dropOpenPath").textContent = app.pendingDrop?.name || t("label.unknown");
   $("dropOpenList").hidden = true;
   $("dropOpenList").textContent = "";
   $("btnDropOpenCopy").hidden = false;
@@ -1322,8 +1239,8 @@ function showDropNoPathModal() {
 
 async function resolveAndOpenDrop(file, pathHint) {
   const searchDirs = [];
-  if (state?.mdPath) searchDirs.push(dirOfPath(state.mdPath));
-  if (state?.workspaceRoot) searchDirs.push(state.workspaceRoot);
+  if (app.state?.mdPath) searchDirs.push(dirOfPath(app.state.mdPath));
+  if (app.state?.workspaceRoot) searchDirs.push(app.state.workspaceRoot);
   const res = await apiFetch("/api/resolve-drop", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1355,32 +1272,34 @@ async function resolveAndOpenDrop(file, pathHint) {
 }
 
 async function importDroppedMarkdown(force) {
-  if (!pendingDrop || typeof pendingDrop.markdown !== "string") {
+  if (!app.pendingDrop || typeof app.pendingDrop.markdown !== "string") {
     setStatus(t("toast.dropEmpty"), "err");
     return false;
   }
-  const res = await apiFetch("/api/import-md", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: pendingDrop.name || "dropped.md",
-      markdown: pendingDrop.markdown,
+  const { ok, cancelled, res, data } = await postJsonWithOutsideConfirm(
+    "/api/import-md",
+    {
+      filename: app.pendingDrop.name || "dropped.md",
+      markdown: app.pendingDrop.markdown,
       force: Boolean(force),
-    }),
-  });
-  const data = await res.json();
+    }
+  );
+  if (cancelled) {
+    setStatus(t("toast.writeCancelled"), "ok");
+    return false;
+  }
   if (res.status === 409 && data.exists) {
-    pendingDrop.conflictPath = data.path;
+    app.pendingDrop.conflictPath = data.path;
     closeDropOpenModal();
     openDropConflictModal(data.path);
     return false;
   }
-  if (!res.ok) {
+  if (!ok) {
     setStatus(data.error || t("toast.dropImportFail"), "err");
-    pendingDrop = null;
+    app.pendingDrop = null;
     return false;
   }
-  pendingDrop = null;
+  app.pendingDrop = null;
   clearMdNavStack();
   applyActiveMarkdown(data);
   updateNavBackButton();
@@ -1408,25 +1327,25 @@ async function handleMarkdownDrop(dt) {
   const first = mdFiles[0];
   const pathHint = extractDroppedPathHint(dt, first);
   const markdown = await first.text();
-  pendingDrop = {
+  app.pendingDrop = {
     name: first.name || "dropped.md",
     markdown,
     conflictPath: "",
     pathHint,
   };
   await resolveAndOpenDrop(first, pathHint);
-  if (mdFiles.length > 1 && state?.mdPath) {
+  if (mdFiles.length > 1 && app.state?.mdPath) {
     setStatus(
-      t("toast.openedFirstOf", { n: mdFiles.length, path: state.mdPath }),
+      t("toast.openedFirstOf", { n: mdFiles.length, path: app.state.mdPath }),
       "ok"
     );
   }
 }
 
 async function browseForDroppedFile() {
-  const name = pendingDrop?.name || "";
+  const name = app.pendingDrop?.name || "";
   closeDropOpenModal();
-  pendingDrop = null;
+  app.pendingDrop = null;
   await openOpenMdModal();
   if (name) {
     $("openMdPathInput").value = name;
@@ -1440,8 +1359,8 @@ async function browseForDroppedFile() {
 function requestUiShutdown() {
   try {
     if (navigator.sendBeacon) {
+      // sendBeacon cannot set the API token header; /api/shutdown is token-free.
       navigator.sendBeacon("/api/shutdown", "");
-      return;
     }
   } catch (_) {
     /* fall through */
@@ -1454,47 +1373,8 @@ function requestUiShutdown() {
 }
 
 function wireUiModules() {
-  bindNotes({
-    getState: () => state,
+  const shared = createModuleApi({
     setStatus,
-  });
-
-  bindTabs({
-    getState: () => state,
-    ensureState,
-    getDirtyMd: () => dirtyMd,
-    setDirtyMd: (v) => {
-      dirtyMd = Boolean(v);
-    },
-    getTabDirtyById: () => tabDirtyById,
-    getTabSwitchBusy: () => tabSwitchBusy,
-    setTabSwitchBusy: (v) => {
-      tabSwitchBusy = Boolean(v);
-    },
-    getTabPullBusy: () => tabPullBusy,
-    setTabPullBusy: (v) => {
-      tabPullBusy = Boolean(v);
-    },
-    getLastTabSig: () => lastTabSig,
-    setLastTabSig: (v) => {
-      lastTabSig = String(v || "");
-    },
-    getLastFlashId: () => lastFlashId,
-    setLastFlashId: (v) => {
-      lastFlashId = Number(v) || 0;
-    },
-    getDefaultDocTitle: () => defaultDocTitle,
-    getTitleFlashTimer: () => titleFlashTimer,
-    setTitleFlashTimer: (v) => {
-      titleFlashTimer = v;
-    },
-    setDefaultPdfPath: (v) => {
-      defaultPdfPath = v || "";
-    },
-    setLastPdfPath: (v) => {
-      lastPdfPath = v;
-    },
-    DATA_DOC_KINDS,
     applyStatePayload,
     applyActiveMarkdown,
     updateActivePath,
@@ -1507,19 +1387,16 @@ function wireUiModules() {
     ensureMdClean,
     clearMdNavStack,
     hideExportBanner,
-  });
-
-  bindBrowse({
-    getState: () => state,
+    schedulePreview,
+    rememberActiveDirty,
+    renderTabBar,
+    mergeTabSnapshot,
+    pushMdNav,
+    dataDocLabel,
     runOpenMd,
     runSaveMd,
     runExportPdf,
     runNewMd,
-    getNewMdMode: () => newMdMode,
-  });
-
-  bindShortcuts({
-    getState: () => state,
     closeDirtyModal,
     cancelPendingDrop,
     closeOpenMdModal,
@@ -1528,50 +1405,22 @@ function wireUiModules() {
     closePdfModal,
     runNavBack,
     closeHeaderMenus,
-    currentDocKind,
-    isDataDoc,
-    dataDocLabel,
     openMdModal,
-    runSaveMd,
     openOpenMdModal,
     openNewMdModal,
     toggleEditor,
     runCloseTab,
     toggleAsideRail,
-  });
-
-  bindProfileForm({
-    getState: () => state,
-    schedulePreview,
-    applyStatePayload,
-    refreshPreview,
-    basenamePath,
-    updateHints,
-    setDirtyProfile: (v) => {
-      dirtyProfile = Boolean(v);
-    },
-  });
-
-  bindPreview({
-    getState: () => state,
-    currentDocKind,
     readForm,
-    updateHints,
-    basenamePath,
-    rememberActiveDirty,
-    renderTabBar,
-    setDirtyMd: (v) => {
-      dirtyMd = Boolean(v);
-    },
-    setDirtyProfile: (v) => {
-      dirtyProfile = Boolean(v);
-    },
-    applyActiveMarkdown,
-    mergeTabSnapshot,
-    updateWelcomePanel,
-    pushMdNav,
-    getTabDirtyById: () => tabDirtyById,
+    resetEditorViewToStart,
   });
+
+  bindNotes(shared);
+  bindTabs(shared);
+  bindBrowse(shared);
+  bindShortcuts(shared);
+  bindProfileForm(shared);
+  bindPreview(shared);
   initPreviewScrollFollow();
 }
 
@@ -1599,8 +1448,8 @@ $("btnNewMdConfirm").addEventListener("click", () => {
     return;
   }
   runNewMd(path, false, {
-    skipDirtyConfirm: newMdMode === "drop-save",
-    fromDrop: newMdMode === "drop-save",
+    skipDirtyConfirm: app.newMdMode === "drop-save",
+    fromDrop: app.newMdMode === "drop-save",
   });
 });
 $("newMdPathInput").addEventListener("keydown", (e) => {
@@ -1616,7 +1465,7 @@ $("btnNewMdUp").addEventListener("click", () => {
 });
 $("btnNewMdHome").addEventListener("click", () => {
   if (browseState.mode !== "new-md") return;
-  const home = browseState.home || state?.workspaceRoot || "";
+  const home = browseState.home || app.state?.workspaceRoot || "";
   if (home) loadBrowseDir(home);
 });
 $("newMdRootSelect").addEventListener("change", () => {
@@ -1664,7 +1513,7 @@ $("btnOpenMdUp").addEventListener("click", () => {
 });
 $("btnOpenMdHome").addEventListener("click", () => {
   if (browseState.mode !== "open") return;
-  const home = browseState.home || state?.workspaceRoot || "";
+  const home = browseState.home || app.state?.workspaceRoot || "";
   if (home) loadBrowseDir(home);
 });
 $("openMdRootSelect").addEventListener("change", () => {
@@ -1708,7 +1557,7 @@ $("btnMdSaveUp").addEventListener("click", () => {
 });
 $("btnMdSaveHome").addEventListener("click", () => {
   if (browseState.mode !== "save-md") return;
-  const home = browseState.home || state?.workspaceRoot || "";
+  const home = browseState.home || app.state?.workspaceRoot || "";
   if (home) loadBrowseDir(home);
 });
 $("mdSaveRootSelect").addEventListener("change", () => {
@@ -1769,7 +1618,7 @@ $("btnPdfSaveUp").addEventListener("click", () => {
 });
 $("btnPdfSaveHome").addEventListener("click", () => {
   if (browseState.mode !== "save-pdf") return;
-  const home = browseState.home || state?.workspaceRoot || "";
+  const home = browseState.home || app.state?.workspaceRoot || "";
   if (home) loadBrowseDir(home);
 });
 $("pdfSaveRootSelect").addEventListener("change", () => {
@@ -1792,7 +1641,7 @@ $("btnInsertKeep").addEventListener("click", () => insertKeepTogether());
 $("btnToggleEditor").addEventListener("click", () => toggleEditor());
 $("btnAsideToggle").addEventListener("click", () => toggleAsideRail());
 $("btnCloseMd").addEventListener("click", () => {
-  if (state?.activeTabId) runCloseTab(state.activeTabId);
+  if (app.state?.activeTabId) runCloseTab(app.state.activeTabId);
   else runCloseMd();
 });
 $("btnNavBack").addEventListener("click", () => {
@@ -2035,8 +1884,8 @@ async function bootUi() {
         return;
       }
       await setLang(next);
-      if (state?.builtins) fillTemplateOptions(state.builtins, state.profileRef);
-      if (state?.profile) fillForm(state.profile);
+      if (app.state?.builtins) fillTemplateOptions(app.state.builtins, app.state.profileRef);
+      if (app.state?.profile) fillForm(app.state.profile);
       updateDocModeUi();
       updateHints();
       updateSettingsHints();
@@ -2045,7 +1894,7 @@ async function bootUi() {
       updateNavBackButton();
       applyAsideRail(isAsideRail());
       renderTabBar();
-      fillHelpMenu(state?.library);
+      fillHelpMenu(app.state?.library);
       // Refresh library labels / START path from server for the new lang.
       try {
         await loadState();

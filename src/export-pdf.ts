@@ -67,6 +67,57 @@ async function waitForImages(page: {
   }
 }
 
+function chromiumLaunchArgs(noSandbox: boolean): string[] {
+  const base = [
+    "--allow-file-access-from-files",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+  ];
+  if (noSandbox) {
+    return ["--no-sandbox", "--disable-setuid-sandbox", ...base];
+  }
+  return base;
+}
+
+/**
+ * Prefer Chromium sandbox; fall back to --no-sandbox when required
+ * (common in Linux CI / restricted containers).
+ *
+ * Env:
+ * - MD_OUTLET_NO_SANDBOX=1 → always disable sandbox
+ * - MD_OUTLET_PDF_SANDBOX=1 → never fall back (fail if sandbox cannot start)
+ */
+async function launchPdfBrowser(
+  executablePath: string,
+  userDataDir: string
+): Promise<Browser> {
+  const forceNoSandbox = process.env.MD_OUTLET_NO_SANDBOX === "1";
+  const forceSandbox = process.env.MD_OUTLET_PDF_SANDBOX === "1";
+
+  const tryLaunch = (noSandbox: boolean) =>
+    puppeteer.launch({
+      headless: true,
+      executablePath,
+      userDataDir,
+      args: chromiumLaunchArgs(noSandbox),
+    });
+
+  if (forceNoSandbox) {
+    return tryLaunch(true);
+  }
+
+  try {
+    return await tryLaunch(false);
+  } catch (err) {
+    if (forceSandbox) throw err;
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(
+      `PDF browser: sandboxed launch failed (${detail}); retrying with --no-sandbox`
+    );
+    return tryLaunch(true);
+  }
+}
+
 export async function exportPdf({
   html,
   profile,
@@ -83,18 +134,7 @@ export async function exportPdf({
   const userDataDir = mkdtempSync(join(tmpdir(), "md-outlet-pdf-"));
   let browser: Browser | undefined;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: resolved.path,
-      userDataDir,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--allow-file-access-from-files",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-      ],
-    });
+    browser = await launchPdfBrowser(resolved.path, userDataDir);
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "domcontentloaded" });
     await waitForImages(page);

@@ -191,6 +191,19 @@ theme: ./themes/paper/theme.css
 
 ---
 
+## セキュリティ／信頼境界
+
+md-outlet は **ローカルツール**です（UI は既定で `127.0.0.1` のみ）。想定は **信頼できる文書** — 自分やチームの手順書・メモです。
+
+- **信頼できない Markdown**（メール添付、出所不明のダウンロード、未知のリポジトリなど）は、中身を確認せずに開かないでください。既定の `allowHtml: true` / `"breaks"` は改ページ用ヘルパーのみ許可します。任意 HTML が必要な場合のみ `"raw"`（信頼できる文書限定）。
+- プレビュー HTML には **Content-Security-Policy** を付け、既定ではスクリプトを禁止します（`script-src 'none'`）。`allowHtml: "raw"` のときだけ意図的な HTML／JS 実行を緩めます。
+- UI 起動ごとに **セッション API トークン**（ヘッダ `X-MD-Outlet-Token`、ページに注入）を発行します。Origin がある場合は同一ポートのループバックのみ許可。自動化向けに `MD_OUTLET_API_TOKEN` で上書きできます。`GET /api/asset`・`GET /api/pdf`・`/api/shutdown` は `<img>`／タブ閉鎖の sendBeacon がヘッダを送れないためトークン不要。
+- リクエスト本文はサイズ上限あり。パス／ファイル名は正規化します。**パッケージ外かつ、開いている文書フォルダの外**への書き込み（別名保存／新規／PDF／プロファイル）は確認ダイアログが必要です。開いている文書と同じフォルダへの PDF などは確認なし。画像などのアセットは文書フォルダ配下に制限されます。
+
+詳細は [SPEC.md](SPEC.md) を参照。
+
+---
+
 ## 設計の約束
 
 実装で守る前提です（詳細は SPEC）。
@@ -209,5 +222,8 @@ npm install
 npm run test:schema   # 同梱プロファイル検証
 npm run smoke         # サンプル PDF
 npm test              # 一式
+npm audit             # 脆弱性 0 を想定
 npm run cli -- pdf examples/sample.md
 ```
+
+依存関係の更新方針: [docs/DEPS.md](docs/DEPS.md)

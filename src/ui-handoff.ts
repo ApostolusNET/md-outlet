@@ -8,6 +8,7 @@
 
 import { isAbsolute, resolve } from "node:path";
 import { UI_MSG } from "./ui-messages.js";
+import { API_TOKEN_HEADER, loadApiTokenForPort } from "./ui-auth.js";
 
 export type HandoffResult =
   | { ok: true; kind: "opened" | "activated" | "already"; url: string; path?: string }
@@ -15,6 +16,13 @@ export type HandoffResult =
 
 function uiUrl(host: string, port: number): string {
   return `http://${host}:${port}/`;
+}
+
+function tokenHeaders(port: number): Record<string, string> {
+  const token = loadApiTokenForPort(port);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (token) headers[API_TOKEN_HEADER] = token;
+  return headers;
 }
 
 /** True when /api/state looks like md-outlet UI (not some other service). */
@@ -28,7 +36,7 @@ export async function probeMdOutletUi(
   try {
     const res = await fetch(`${uiUrl(host, port)}api/state`, {
       signal: ctrl.signal,
-      headers: { Accept: "application/json" },
+      headers: tokenHeaders(port),
     });
     if (!res.ok) return false;
     const data = (await res.json()) as {
@@ -82,7 +90,10 @@ export async function handoffToExistingUi(opts: {
   try {
     const res = await fetch(`${url}api/tabs/open`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...tokenHeaders(opts.port),
+      },
       body: JSON.stringify({ path: abs }),
     });
     const data = (await res.json()) as {

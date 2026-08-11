@@ -92,7 +92,14 @@
         "gfm": { "type": "boolean", "default": true },
         "highlight": { "type": "boolean", "default": true },
         "highlightStyle": { "type": "string", "default": "github" },
-        "allowHtml": { "type": "boolean", "default": true }
+        "allowHtml": {
+          "description": "HTML in Markdown: boolean (false=off, true=breaks) or off|breaks|raw",
+          "default": true,
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["off", "breaks", "raw"] }
+          ]
+        }
       },
       "additionalProperties": false
     },

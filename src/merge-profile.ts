@@ -90,6 +90,13 @@ export function mergeProfilePartial(
       out.markdown.highlightStyle = m.highlightStyle;
     }
     if (typeof m.allowHtml === "boolean") out.markdown.allowHtml = m.allowHtml;
+    if (
+      m.allowHtml === "off" ||
+      m.allowHtml === "breaks" ||
+      m.allowHtml === "raw"
+    ) {
+      out.markdown.allowHtml = m.allowHtml;
+    }
   }
 
   if (Array.isArray(overlay.bodyClass)) {

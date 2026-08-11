@@ -250,7 +250,7 @@ md-outlet ui [input.md] [--profile <name|path>] [-o <save.yaml>] [--port 5760] [
 | `gfm` | boolean | `true` | GitHub Flavored Markdown |
 | `highlight` | boolean | `true` | コードハイライト |
 | `highlightStyle` | string | `github` | highlight.js のスタイル名 |
-| `allowHtml` | boolean | `true` | 生 HTML を許可（`<div class="page-break">` の受理に必要） |
+| `allowHtml` | boolean \| `"off"` \| `"breaks"` \| `"raw"` | `true` | Markdown 内の生 HTML 方針。`false`/`"off"`＝エスケープ、`true`/`"breaks"`＝改ページ用ヘルパーのみ（`page-break` / `keep-together`）、`"raw"`＝制限なし（**信頼できる文書のみ**）。プレビュー HTML の CSP も連動し、既定は `script-src 'none'`、`"raw"` のみスクリプトを緩和。 |
 
 ### `bodyClass` (optional)
 

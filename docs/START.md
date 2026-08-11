@@ -7,6 +7,14 @@
 md-outlet is a **local Markdown editor + PDF export** tool.  
 Preview in the browser while you write; PDF uses the same HTML pipeline.
 
+**Trust:** open only documents you trust. Untrusted Markdown can include HTML that affects preview/PDF. See [README — Security / trust boundary](../README.md#security--trust-boundary).
+
+**Defaults worth knowing:**
+
+- Profile `allowHtml`: `true` / `"breaks"` allows page-break helpers only; use `"raw"` only for fully trusted sources. Preview CSP blocks scripts unless `"raw"`.
+- Each UI start issues a session API token (`X-MD-Outlet-Token`). Override with `MD_OUTLET_API_TOKEN` for automation.
+- Saving / exporting **outside the package folder and outside the open document’s folder** asks for an explicit confirm in the UI.
+
 ---
 
 ## Requirements

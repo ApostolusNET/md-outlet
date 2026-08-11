@@ -31,3 +31,7 @@ examples/local/
 docs/_private/
 docs/GbizINFO-APItoken.md
 docs/GbizINFO-APItoken.example.md
+
+# Local backups before structural refactors
+_backup/
+scripts/__pycache__/

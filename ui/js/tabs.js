@@ -208,6 +208,9 @@ export async function pullExternalTabChanges() {
       mergeTabSnapshot(data);
       if (typeof data.markdown === "string") {
         $("mdEditor").value = data.markdown;
+        if (typeof api.resetEditorViewToStart === "function") {
+          api.resetEditorViewToStart();
+        }
       }
       if (data.pdfOutputPath) {
         state.pdfOutputPath = data.pdfOutputPath;

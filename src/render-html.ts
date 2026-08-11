@@ -11,6 +11,11 @@ import {
   rewriteLocalImageSources,
   type AssetRewriteMode,
 } from "./assets.js";
+import {
+  filterHtmlToken,
+  previewCspMetaTag,
+  resolveHtmlMode,
+} from "./html-mode.js";
 
 const require = createRequire(import.meta.url);
 
@@ -43,6 +48,7 @@ export function renderHtml(
   profile: Profile,
   options: RenderHtmlOptions = {}
 ): RenderResult {
+  const htmlMode = resolveHtmlMode(profile.markdown.allowHtml);
   const marked = new Marked();
   if (profile.markdown.highlight) {
     marked.use(
@@ -56,6 +62,13 @@ export function renderHtml(
       })
     );
   }
+  marked.use({
+    renderer: {
+      html({ text }) {
+        return filterHtmlToken(text, htmlMode);
+      },
+    },
+  });
   marked.setOptions({
     gfm: profile.markdown.gfm,
     breaks: false,
@@ -86,6 +99,7 @@ export function renderHtml(
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
+    ${previewCspMetaTag(htmlMode)}
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
     <style data-md-outlet="theme">

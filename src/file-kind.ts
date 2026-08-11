@@ -3,6 +3,7 @@ import { buildXmlScanReport } from "./xml-scan.js";
 import { buildDataScanReport } from "./data-scan.js";
 import { buildPlainDataScanReport } from "./text-scan.js";
 import { DEFAULT_LANG, t, type Lang } from "./i18n.js";
+import { previewCspMetaTag } from "./html-mode.js";
 
 export type DocKind =
   | "md"
@@ -180,10 +181,12 @@ export function dataPreviewHtml(
   const title = fileLabel.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const banner = bannerFor(kind, lang);
   const htmlLang = lang === "en" ? "en" : "ja";
+  // Always script-src 'none' (escaped body; no allowHtml raw path).
   return `<!DOCTYPE html>
 <html lang="${htmlLang}">
 <head>
 <meta charset="utf-8" />
+${previewCspMetaTag("breaks")}
 <title>${title}</title>
 <style>
   body {
